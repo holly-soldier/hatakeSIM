@@ -41,6 +41,7 @@
     .c-pad { background: #4caf50; }
     .c-cop { background: #ffb74d; }
     .c-brn { background: #795548; }
+    .c-hrs { background: #8d6e63; }
     .c-ers { background: #f44336; }
     .c-rst { background: #d32f2f; color:white; border-color: #d32f2f;}
 
@@ -48,7 +49,6 @@
     .legend-item { display: flex; align-items: center; gap: 4px; }
     .legend-box { width: 12px; height: 12px; }
     .legend-pattern { background: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255, 183, 77, 0.4) 2px, rgba(255, 183, 77, 0.4) 4px); border: 1px solid #ddd; }
-    .disclaimer { margin-top: 12px; padding-top: 8px; border-top: 1px dashed #ccc; font-size: 9px; color: #999; line-height: 1.4; }
 
     #workspace { flex: 1; display: flex; flex-direction: column; height: calc(100vh - 56px - max(20vh, 180px)); background: #cfd8dc; position: relative; overflow: hidden; touch-action: none; }
     #ruler-top { height: 20px; background: #e0e0e0; border-bottom: 1px solid #999; position: absolute; top: 0; left: 20px; right: 0; z-index: 2; overflow: hidden; pointer-events: none;}
@@ -60,17 +60,35 @@
     canvas { display: block; }
     
     #tutorial-toast { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: white; padding: 8px 16px; border-radius: 20px; font-size: 12px; pointer-events: none; transition: opacity 0.5s; white-space: nowrap; z-index: 20; }
-  </style>
+  
+    @media print {
+      body, html { overflow: visible !important; height: auto !important; background: white !important; }
+      header, #controls, #tutorial-toast, #ruler-top, #ruler-left, #ruler-corner { display: none !important; }
+      #workspace { height: auto !important; background: white !important; overflow: visible !important; display: block !important; }
+      #map-container { position: static !important; overflow: visible !important; display: block !important; }
+      #canvas-wrapper { transform: none !important; position: static !important; margin: 0 auto; display: block !important; }
+      canvas { max-width: 100%; height: auto; page-break-inside: avoid; border: 1px solid #ccc; }
+    }
+</style>
 </head>
 <body>
   <header>
     <div class="title-group">
       <h1>【非公式】畑シミュレーター</h1>
-      <span class="version">v26.10.27</span>
+      <span class="version">v26.10.24.2218</span>
     </div>
   </header>
   
   <div id="controls">
+    
+    <div class="section-title">システム</div>
+    <div class="btn-group">
+      <button class="btn" onclick="printMap()">🖨️ 印刷</button>
+      <button class="btn" onclick="exportData()">💾 バックアップ保存</button>
+      <button class="btn" onclick="document.getElementById('import-file').click()">📂 復元(読込)</button>
+      <input type="file" id="import-file" style="display:none" accept=".json" onchange="importData(event)">
+    </div>
+
     <div class="section-title">畑のサイズ</div>
     <div class="btn-group">
       <button class="btn active" onclick="changeField(0)">1個目</button>
@@ -88,7 +106,7 @@
         <div class="item-icon c-enh">💧</div><div class="item-name">強化スプ</div><div class="item-desc">7×7</div>
       </div>
       <div class="item-btn" onclick="selectItem('nor')" id="btn-nor">
-        <div class="item-icon c-nor">💧</div><div class="item-name">通常スプ</div><div class="item-desc">5×5</div>
+        <div class="item-icon c-nor">💧</div><div class="item-name">普通スプ</div><div class="item-desc">5×5</div>
       </div>
       <div class="item-btn" onclick="selectItem('sml')" id="btn-sml">
         <div class="item-icon c-sml">💧</div><div class="item-name">小スプ</div><div class="item-desc">3×3</div>
@@ -105,6 +123,9 @@
       <div class="item-btn" onclick="selectItem('brn')" id="btn-brn">
         <div class="item-icon c-brn">🏚️</div><div class="item-name">家畜小屋</div><div class="item-desc" id="desc-brn">特殊 10×14</div>
       </div>
+      <div class="item-btn" onclick="selectItem('hrs')" id="btn-hrs">
+        <div class="item-icon c-hrs">🐴</div><div class="item-name">馬小屋</div><div class="item-desc" id="desc-hrs">特殊 8×8</div>
+      </div>
       <div class="item-btn" onclick="selectItem('ers')" id="btn-ers">
         <div class="item-icon c-ers">🧽</div><div class="item-name">消しゴム</div><div class="item-desc">削除</div>
       </div>
@@ -120,8 +141,6 @@
       <div class="legend-item"><div class="legend-box" style="background:#ffffff; border:1px solid #ccc;"></div>畑</div>
       <div class="legend-item"><div class="legend-box" style="background:#e0e0e0;"></div>外枠/空白</div>
       <div class="legend-item"><div class="legend-box" style="background:#212121;"></div>不可</div>
-      <div class="legend-item"><div class="legend-box legend-pattern"></div>施設不可</div>
-      <div class="legend-item"><div class="legend-box" style="background:#81c784;"></div>出入口</div>
     </div>
   </div>
   
@@ -151,14 +170,15 @@
     const rulerLeftCanvas = document.getElementById('canvas-ruler-left');
     const ctxRL = rulerLeftCanvas.getContext('2d');
 
-    // 0:空白(配置可だが畑ではない), 1:畑, 2:配置不可
-    const map1_matrix = [[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0], [0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 2, 0, 0, 0, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 2, 0, 0, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 2, 0, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 2, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2], [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2], [2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2], [2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2], [2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2], [2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2], [2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2], [2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2], [2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2], [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0]]
+    const map1_matrix = [[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], [0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2], [0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2], [0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2], [0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2], [0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 2, 2, 2, 2, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 2, 2, 2, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 2, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 2], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2], [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2], [2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2], [2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2], [2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2], [2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2], [2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2], [2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2], [2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2], [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2]]
 
-    // 2個目3個目はまだ詳細データがないため、仮で従来の四角形ベースのサイズ(w,h)を使用
+    const map2_matrix = [[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], [2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]];
+    const map3_matrix = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 2, 2, 2], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 2, 2, 2], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 2, 2, 2], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 2, 2, 2], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 2, 2, 2], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 2, 2, 2], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 2, 2, 2], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 2, 2, 2], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 2, 2, 2], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 2, 2, 2], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 2, 2, 2], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 2, 2, 2], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 2, 2, 2], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 2, 2, 2], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 2, 2, 2], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 2, 2, 2], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 2, 2, 2], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 2, 2, 2], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]];
+
     const fields = [
       { name: "1個目", matrix: map1_matrix },
-      { w: 27, h: 29, name: "2個目" },
-      { w: 25, h: 32, name: "3個目" }
+      { name: "2個目", matrix: map2_matrix },
+      { name: "3個目", matrix: map3_matrix }
     ];
     let currentFieldIndex = 0;
     
@@ -208,19 +228,23 @@
       [0,0,0,1,3,3,3,1,1,1,1,1,0,0],
       [0,0,0,0,2,2,2,0,0,0,0,0,0,0]
     ];
+    
+    const matrix_hrs_norm = [[0, 0, 0, 1, 1, 1, 1, 2], [2, 2, 2, 1, 1, 1, 1, 2], [2, 2, 2, 1, 1, 1, 1, 2], [2, 2, 2, 1, 1, 1, 1, 2], [2, 2, 2, 1, 1, 1, 1, 2], [2, 2, 2, 1, 1, 1, 1, 2], [2, 2, 2, 1, 1, 1, 1, 0], [2, 2, 2, 1, 1, 1, 1, 0]];
+    const matrix_hrs_rot = [[0, 0, 2, 2, 2, 2, 2, 2], [1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1], [2, 2, 2, 2, 2, 2, 2, 0], [2, 2, 2, 2, 2, 2, 2, 0], [2, 2, 2, 2, 2, 2, 2, 0]];
 
     const items = {
       'enh': { type: 'sprinkler', w: 1, h: 1, range: 3, color: '#ff5722', label: '強', matrixNorm: null, matrixRot: null },
-      'nor': { type: 'sprinkler', w: 1, h: 1, range: 2, color: '#03a9f4', label: '通', matrixNorm: null, matrixRot: null },
+      'nor': { type: 'sprinkler', w: 1, h: 1, range: 2, color: '#03a9f4', label: '普', matrixNorm: null, matrixRot: null },
       'sml': { type: 'sprinkler', w: 1, h: 1, range: 1, color: '#9e9e9e', label: '小', matrixNorm: null, matrixRot: null },
       'tre': { type: 'tree', w: 1, h: 1, range: 1, color: '#ff9800', label: '🍎', matrixNorm: null, matrixRot: null },
       'pad': { type: 'paddy', w: 1, h: 1, range: 1, color: '#4caf50', label: '🌱', matrixNorm: null, matrixRot: null },
       'cop': { type: 'building', w: 8, h: 6, range: 0, color: '#ffb74d', label: '鶏', rotatable: true, matrixNorm: matrix_cop_norm, matrixRot: matrix_cop_rot },
-      'brn': { type: 'building', w: 10, h: 14, range: 0, color: '#795548', label: '牛', rotatable: true, matrixNorm: matrix_brn_norm, matrixRot: matrix_brn_rot }
+      'brn': { type: 'building', w: 10, h: 14, range: 0, color: '#795548', label: '牛', rotatable: true, matrixNorm: matrix_brn_norm, matrixRot: matrix_brn_rot },
+      'hrs': { type: 'building', w: 8, h: 8, range: 0, color: '#8d6e63', label: '馬', rotatable: true, matrixNorm: matrix_hrs_norm, matrixRot: matrix_hrs_rot }
     };
     
     let currentItem = 'enh';
-    let rotState = { 'cop': false, 'brn': false };
+    let rotState = { 'cop': false, 'brn': false, 'hrs': false };
     
     let allGridData = [[], [], []];
     let allHistory = [[], [], []];
@@ -256,7 +280,62 @@
       currentFieldIndex = idx;
       gridData = allGridData[idx];
       history = allHistory[idx];
-      init();
+      
+    function printMap() {
+      let oldScale = scale, oldPanX = panX, oldPanY = panY;
+      scale = 1; panX = 0; panY = 0;
+      updateTransform();
+      window.print();
+      setTimeout(() => {
+        scale = oldScale; panX = oldPanX; panY = oldPanY;
+        updateTransform();
+      }, 500);
+    }
+
+    function exportData() {
+      const data = {
+        version: 1,
+        allGridData: allGridData
+      };
+      const json = JSON.stringify(data);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      let d = new Date();
+      let dStr = `${d.getFullYear()}${(d.getMonth()+1).toString().padStart(2,'0')}${d.getDate().toString().padStart(2,'0')}_${d.getHours().toString().padStart(2,'0')}${d.getMinutes().toString().padStart(2,'0')}`;
+      a.download = `farm_backup_${dStr}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importData(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        try {
+          const data = JSON.parse(event.target.result);
+          if (data && data.allGridData) {
+            allGridData = data.allGridData;
+            allHistory = [[], [], []]; // 履歴はリセット
+            gridData = allGridData[currentFieldIndex];
+            history = allHistory[currentFieldIndex];
+            updateUndoButton();
+            render();
+            alert("バックアップデータを復元しました。");
+          } else {
+            alert("無効なファイルフォーマットです。");
+          }
+        } catch(err) {
+          alert("ファイルの読み込みに失敗しました。");
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = ''; // 連続で同じファイルを読めるようにリセット
+    }
+
+    init();
     }
 
     function selectItem(key) {
@@ -309,19 +388,17 @@
       }
     }
 
-    // セルの状態を取得する共通関数
-    // 0: 空白, 1: 畑, 2: 不可
     function getCellState(x, y) {
       const f = fields[currentFieldIndex];
       const map = getMapSize();
-      if(x < 0 || y < 0 || x >= map.cols || y >= map.rows) return 2; // 外側は不可
+      if(x < 0 || y < 0 || x >= map.cols || y >= map.rows) return 2;
       
       if(f.matrix) {
         return f.matrix[y][x];
       } else {
         let isOuter = (x < 3 || x >= f.w + 3 || y < 3 || y >= f.h + 3);
-        if(isOuter) return 0; // 外枠は空白(配置可だが畑ではない)として扱う
-        return 1; // それ以外は畑
+        if(isOuter) return 0;
+        return 1;
       }
     }
 
@@ -351,24 +428,30 @@
       const map = getMapSize();
       const scaledTile = TILE_SIZE * scale;
 
-      // 原点の探索 (最初の 1 が見つかった場所を (1,1) にする)
-      let originX = 3, originY = map.rows - 3 - 1; // デフォルト (古いロジック用)
+      let originX = 3, originY = map.rows - 3 - 1; 
       if (f.matrix) {
-        // 左下から探して、最初に 1 (畑) がある場所のXと、最も下にある 1 のY を原点とみなすか、
-        // ユーザー提供の図面を見ると左下の 1 ブロック群の左下角を基準とする。
-        // 今回のマップ1では y=41, x=21 あたりに最初の1がある。
-        // 単純化のため、マップ内に畑ブロック(1)が初めて出現する最も左、最も下の座標を(1,1)とみなす。
-        let minX = 999, maxY = -1;
-        for(let r=0; r<map.rows; r++){
-          for(let c=0; c<map.cols; c++){
+        let minX = 999;
+        for(let c=0; c<map.cols; c++){
+          let found = false;
+          for(let r=0; r<map.rows; r++){
             if(f.matrix[r][c] === 1) {
-              if(c < minX) minX = c;
-              if(r > maxY) maxY = r;
+              minX = c;
+              found = true;
+              break;
             }
           }
+          if(found) break;
         }
-        if(minX !== 999) originX = minX;
-        if(maxY !== -1) originY = maxY;
+        if (minX !== 999) {
+          originX = minX;
+          let maxY = -1;
+          for(let r=0; r<map.rows; r++){
+            if(f.matrix[r][originX] === 1) {
+              if (r > maxY) maxY = r;
+            }
+          }
+          originY = maxY;
+        }
       }
 
       ctxRT.clearRect(0, 0, rulerTopCanvas.width, rulerTopCanvas.height);
@@ -412,18 +495,17 @@
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
-      // 1. 背景グリッド
       for(let y = 0; y < map.rows; y++) {
         for(let x = 0; x < map.cols; x++) {
           let rx = x * TILE_SIZE, ry = y * TILE_SIZE;
           let state = getCellState(x, y);
           
           if(state === 2) {
-             ctx.fillStyle = '#212121'; // 不可
+             ctx.fillStyle = '#212121'; 
           } else if (state === 0) {
-             ctx.fillStyle = '#e0e0e0'; // 空白
+             ctx.fillStyle = '#e0e0e0'; 
           } else {
-             ctx.fillStyle = '#ffffff'; // 畑
+             ctx.fillStyle = '#ffffff'; 
           }
           
           ctx.fillRect(rx, ry, TILE_SIZE, TILE_SIZE);
@@ -432,7 +514,6 @@
         }
       }
 
-      // 2. ハイライト
       let highlightMap = Array(map.rows).fill(null).map(() => Array(map.cols).fill(null));
       
       function applyHighlight(gx, gy, type, range, w, h) {
@@ -466,7 +547,6 @@
         }
       }
 
-      // 3. スプリンクラー
       function drawSprinklerHighlight(gx, gy, type, range, w, h) {
         if(type === 'sprinkler') {
           ctx.fillStyle = 'rgba(33, 150, 243, 0.4)';
@@ -487,7 +567,6 @@
         drawSprinklerHighlight(ghostX, ghostY, itm.type, itm.range, gw, gh);
       }
 
-      // 4. 本体
       function drawItemComplex(gx, gy, itmType, w, h, color, label, matrix) {
         if (!matrix) {
           ctx.fillStyle = color;
@@ -545,12 +624,11 @@
         let gh = mtx ? mtx.length : (itm.rotatable && isRot ? itm.w : itm.h);
         
         ctx.globalAlpha = 0.6;
-        let can = canPlace(ghostX, ghostY, gw, gh, itm.type, mtx);
+        let can = canPlace(ghostX, ghostY, gw, gw ? gh : h, itm.type, mtx);
         drawItemComplex(ghostX, ghostY, itm.type, gw, gh, can ? itm.color : 'red', can ? itm.label : 'X', mtx);
         ctx.globalAlpha = 1.0;
       }
       
-      // ルーラーも更新
       renderRulers();
     }
 
@@ -560,15 +638,30 @@
 
       if(x < 0 || y < 0 || x + w > map.cols || y + h > map.rows) return false;
 
-      // 背景の2(配置不可)と重なっていないかチェック
+      // 1. 本体の制限チェック
       for(let iy = y; iy < y + h; iy++) {
         for(let ix = x; ix < x + w; ix++) {
-          if (matrix && matrix[iy - y][ix - x] === 0) continue; // 建物の空白部分は無視
-          if (getCellState(ix, iy) === 2) return false; // 2=不可エリアには置けない
+          if (matrix && matrix[iy - y][ix - x] === 0) continue; 
+          
+          let state = getCellState(ix, iy);
+          if (state === 2) return false; // 不可エリアには置けない
+
+          if (type === 'tree' && state !== 1) return false;
+          if (type === 'paddy' && state !== 1) return false;
         }
       }
 
-      // 他のアイテムとの衝突チェック
+      // 2. 水田の土手（周囲1マス）
+      if (type === 'paddy') {
+        for(let iy = y - 1; iy <= y + h; iy++) {
+          for(let ix = x - 1; ix <= x + w; ix++) {
+             if (ix >= x && ix < x + w && iy >= y && iy < y + h) continue;
+             if (ix < 0 || iy < 0 || ix >= map.cols || iy >= map.rows) return false;
+          }
+        }
+      }
+
+      // 3. 他のアイテムとの衝突チェック
       for(let item of gridData) {
         for(let iy = y; iy < y + h; iy++) {
           for(let ix = x; ix < x + w; ix++) {
@@ -578,14 +671,20 @@
               for(let ex = item.x; ex < item.x + item.w; ex++) {
                 let evalVal = item.matrix ? item.matrix[ey - item.y][ex - item.x] : 1;
                 if (evalVal === 0) continue; 
+                
                 if (ix === ex && iy === ey) return false;
                 
-                // 果樹の制限（果樹同士は範囲が被らない＝間に2マス必要）
                 if (type === 'tree' && item.type === 'tree') {
                   if (Math.abs(ix - ex) <= 2 && Math.abs(iy - ey) <= 2) return false;
                 } else if (type === 'tree' && item.type === 'building') {
                   if (Math.abs(ix - ex) <= 1 && Math.abs(iy - ey) <= 1) return false;
                 } else if (type === 'building' && item.type === 'tree') {
+                  if (Math.abs(ix - ex) <= 1 && Math.abs(iy - ey) <= 1) return false;
+                }
+
+                if (type === 'tree' && item.type === 'paddy') {
+                  if (Math.abs(ix - ex) <= 1 && Math.abs(iy - ey) <= 1) return false;
+                } else if (type === 'paddy' && item.type === 'tree') {
                   if (Math.abs(ix - ex) <= 1 && Math.abs(iy - ey) <= 1) return false;
                 }
               }
@@ -729,6 +828,61 @@
       this.lastCx = null; this.lastCy = null; this.lastDist = null;
       render();
     });
+
+    
+    function printMap() {
+      let oldScale = scale, oldPanX = panX, oldPanY = panY;
+      scale = 1; panX = 0; panY = 0;
+      updateTransform();
+      window.print();
+      setTimeout(() => {
+        scale = oldScale; panX = oldPanX; panY = oldPanY;
+        updateTransform();
+      }, 500);
+    }
+
+    function exportData() {
+      const data = {
+        version: 1,
+        allGridData: allGridData
+      };
+      const json = JSON.stringify(data);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      let d = new Date();
+      let dStr = `${d.getFullYear()}${(d.getMonth()+1).toString().padStart(2,'0')}${d.getDate().toString().padStart(2,'0')}_${d.getHours().toString().padStart(2,'0')}${d.getMinutes().toString().padStart(2,'0')}`;
+      a.download = `farm_backup_${dStr}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importData(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        try {
+          const data = JSON.parse(event.target.result);
+          if (data && data.allGridData) {
+            allGridData = data.allGridData;
+            allHistory = [[], [], []]; // 履歴はリセット
+            gridData = allGridData[currentFieldIndex];
+            history = allHistory[currentFieldIndex];
+            updateUndoButton();
+            render();
+            alert("バックアップデータを復元しました。");
+          } else {
+            alert("無効なファイルフォーマットです。");
+          }
+        } catch(err) {
+          alert("ファイルの読み込みに失敗しました。");
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = ''; // 連続で同じファイルを読めるようにリセット
+    }
 
     init();
   </script>
