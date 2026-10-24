@@ -11,14 +11,14 @@
 
   <style>
     * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
-    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #f0f4f8; font-family: 'Helvetica Neue', Arial, sans-serif; overflow: hidden; touch-action: none; }
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #f0f4f8; font-family: 'Helvetica Neue', Arial, sans-serif; overflow: hidden; touch-action: none; display: flex; flex-direction: column; }
     
-    header { background-color: #1b5e20; color: white; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; z-index: 10; position: relative; }
+    header { background-color: #1b5e20; color: white; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; z-index: 10; position: relative; flex: 0 0 auto; }
     .title-group { display: flex; align-items: baseline; gap: 8px; }
     h1 { margin: 0; font-size: 16px; font-weight: bold; }
     .version { font-size: 10px; color: #a5d6a7; }
     
-    #controls { background: white; padding: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 5; position: relative; max-height: 40vh; overflow-y: auto; touch-action: pan-y; }
+    #controls { background: white; padding: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 5; position: relative; max-height: 40vh; overflow-y: auto; touch-action: pan-y; flex: 0 0 auto; }
     .section-title { font-size: 12px; color: #7f8c8d; margin: 0 0 8px 0; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
     .btn-group { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
     .btn { padding: 8px 12px; border: 1px solid #ddd; background: white; border-radius: 4px; font-size: 14px; cursor: pointer; transition: 0.2s; white-space: nowrap; }
@@ -50,7 +50,7 @@
     .legend-box { width: 12px; height: 12px; }
     .legend-pattern { background: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255, 183, 77, 0.4) 2px, rgba(255, 183, 77, 0.4) 4px); border: 1px solid #ddd; }
 
-    #workspace { flex: 1; display: flex; flex-direction: column; height: calc(100vh - 56px - max(20vh, 180px) - 50px); background: #cfd8dc; position: relative; overflow: hidden; touch-action: none; }
+    #workspace { flex: 1; display: flex; flex-direction: column; background: #cfd8dc; position: relative; overflow: hidden; touch-action: none; }
     #ruler-top { height: 20px; background: #e0e0e0; border-bottom: 1px solid #999; position: absolute; top: 0; left: 20px; right: 0; z-index: 2; overflow: hidden; pointer-events: none;}
     #ruler-left { width: 20px; background: #e0e0e0; border-right: 1px solid #999; position: absolute; top: 20px; left: 0; bottom: 0; z-index: 2; overflow: hidden; pointer-events: none;}
     #ruler-corner { width: 20px; height: 20px; background: #d5d5d5; border-right: 1px solid #999; border-bottom: 1px solid #999; position: absolute; top: 0; left: 0; z-index: 3; pointer-events: none;}
@@ -74,35 +74,60 @@
     .stats-title { font-weight: bold; color: #333; margin-bottom: 4px; display: flex; justify-content: space-between;}
     .stats-list { display: flex; flex-wrap: wrap; gap: 8px; }
     .stat-item { background: #e8f5e9; border: 1px solid #4caf50; padding: 4px 8px; border-radius: 4px; display: flex; align-items: center; gap: 4px; }
+.title-group { display: flex; align-items: baseline; gap: 8px; }
+    h1 { margin: 0; font-size: 16px; font-weight: bold; }
+    .version { font-size: 10px; color: #a5d6a7; }
+    .settings-btn { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 4px; transition: 0.2s; }
+    .settings-btn:hover { background: rgba(255,255,255,0.3); }
+    
+    #controls { background: white; padding: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 5; position: relative; max-height: 40vh; overflow-y: auto; touch-action: pan-y; flex: 0 0 auto; }
+    
+    .field-selector-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .field-selector-row .section-title { margin: 0; }
+    .field-selector-row .btn-group { margin: 0; margin-bottom: 0; }
+    
+    #stats-panel { background: white; padding: 12px; box-shadow: 0 -2px 4px rgba(0,0,0,0.1); z-index: 5; position: relative; max-height: 20vh; overflow-y: auto; font-size: 12px; flex: 0 0 auto; }
+    
+    #workspace { flex: 1; display: flex; flex-direction: column; background: #cfd8dc; position: relative; overflow: hidden; touch-action: none; }
+    
+    .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; touch-action: none;}
+    .modal-content { background-color: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 320px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #eee; padding-bottom: 8px;}
+    .modal-header h3 { margin: 0; font-size: 16px; color: #333; }
+    .close-btn { font-size: 24px; cursor: pointer; color: #999; background: none; border: none; padding: 0; line-height: 1; margin-top: -4px;}
+    .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+    .modal-grid .btn { width: 100%; justify-content: center; font-size: 13px; }
+    .modal-options { display: flex; flex-direction: column; gap: 12px; border-top: 1px solid #eee; padding-top: 12px;}
+    .toggle-label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #333; cursor: pointer; }
+    
+    .pattern-invalid { background: repeating-linear-gradient(45deg, #555, #555 2px, #212121 2px, #212121 4px); }
+
 </style>
 </head>
 <body>
+  
   <header>
     <div class="title-group">
       <h1>【非公式】畑シミュレーター</h1>
-      <span class="version">v26.10.25.0820</span>
+      <span class="version">v26.10.25.0845</span>
     </div>
+    <button class="settings-btn" onclick="openSettings()">⚙️ 設定</button>
   </header>
+
+  
   
   <div id="controls">
-    
-    <div class="section-title">システム</div>
-    <div class="btn-group">
-      <button class="btn" onclick="printMap()">🖨️ 印刷</button>
-      <button class="btn" onclick="exportData()">💾 バックアップ保存</button>
-      <button class="btn" onclick="document.getElementById('import-file').click()">📂 復元(読込)</button>
-      <input type="file" id="import-file" style="display:none" accept=".json" onchange="importData(event)">
-    </div>
-
-    <div class="section-title">畑のサイズ</div>
-    <div class="btn-group">
-      <button class="btn active" onclick="changeField(0)">1個目</button>
-      <button class="btn" onclick="changeField(1)">2個目</button>
-      <button class="btn" onclick="changeField(2)">3個目</button>
+    <div class="field-selector-row">
+      <div class="section-title">畑の選択</div>
+      <div class="btn-group">
+        <button class="btn active" onclick="changeField(0)">1個目</button>
+        <button class="btn" onclick="changeField(1)">2個目</button>
+        <button class="btn" onclick="changeField(2)">3個目</button>
+      </div>
     </div>
     
     <div class="section-title">
-      <span>配置アイテム (タップで選択・建物は再タップで回転)</span>
+<span>配置アイテム (タップで選択・建物は再タップで回転)</span>
       <button class="btn-undo" onclick="undo()" id="btn-undo" disabled>↩ 戻る</button>
     </div>
     
@@ -145,7 +170,7 @@
       <div class="legend-item"><div class="legend-box" style="background:rgba(255, 193, 7, 0.4);"></div>果樹範囲</div>
       <div class="legend-item"><div class="legend-box" style="background:#ffffff; border:1px solid #ccc;"></div>畑</div>
       <div class="legend-item"><div class="legend-box" style="background:#e0e0e0;"></div>外枠/空白</div>
-      <div class="legend-item"><div class="legend-box" style="background:#212121;"></div>不可</div>
+      <div class="legend-item"><div class="legend-box pattern-invalid"></div>不可</div>
     </div>
   </div>
   
@@ -452,6 +477,64 @@
       }
     }
 
+    
+    // --- Hatch Pattern for Invalid Area ---
+    const invalidHatchCanvas = document.createElement('canvas');
+    invalidHatchCanvas.width = 6; invalidHatchCanvas.height = 6;
+    const invCtx = invalidHatchCanvas.getContext('2d');
+    invCtx.fillStyle = '#212121';
+    invCtx.fillRect(0, 0, 6, 6);
+    invCtx.strokeStyle = '#555';
+    invCtx.lineWidth = 1.5;
+    invCtx.beginPath();
+    invCtx.moveTo(-1, 7); invCtx.lineTo(7, -1);
+    invCtx.stroke();
+    
+    // --- Settings Modal ---
+    function openSettings() { document.getElementById('settings-modal').style.display = 'flex'; }
+    function closeSettings() { document.getElementById('settings-modal').style.display = 'none'; }
+    
+    let statsEnabled = true;
+    function toggleStats() {
+      statsEnabled = document.getElementById('show-stats-toggle').checked;
+      document.getElementById('stats-panel').style.display = statsEnabled ? 'block' : 'none';
+      saveConfig();
+      setTimeout(resizeRulers, 50); // Resize event due to layout flex change
+    }
+    
+    function toggleAutoSave() {
+      autoSaveEnabled = document.getElementById('auto-save-toggle').checked;
+      saveConfig();
+      if (autoSaveEnabled) saveToLocal();
+    }
+    
+    function saveConfig() {
+      localStorage.setItem('farmSimConfig', JSON.stringify({ autoSave: autoSaveEnabled, showStats: statsEnabled }));
+    }
+    
+    function loadConfig() {
+      try {
+        const conf = localStorage.getItem('farmSimConfig');
+        if (conf) {
+          const parsed = JSON.parse(conf);
+          autoSaveEnabled = parsed.autoSave !== false;
+          statsEnabled = parsed.showStats !== false;
+        }
+      } catch(e){}
+      const aT = document.getElementById('auto-save-toggle');
+      if(aT) aT.checked = autoSaveEnabled;
+      const sT = document.getElementById('show-stats-toggle');
+      if(sT) sT.checked = statsEnabled;
+      const p = document.getElementById('stats-panel');
+      if(p) p.style.display = statsEnabled ? 'block' : 'none';
+    }
+    
+    // Close modal if clicked outside
+    window.addEventListener('click', e => {
+      const modal = document.getElementById('settings-modal');
+      if (e.target === modal) closeSettings();
+    });
+
     const hatchCanvas = document.createElement('canvas');
     hatchCanvas.width = 10; hatchCanvas.height = 10;
     const hctx = hatchCanvas.getContext('2d');
@@ -539,7 +622,7 @@
           let state = getCellState(x, y);
           
           if(state === 2) {
-             ctx.fillStyle = '#212121'; 
+             ctx.fillStyle = ctx.createPattern(invalidHatchCanvas, 'repeat'); 
           } else if (state === 0) {
              ctx.fillStyle = '#e0e0e0'; 
           } else {
@@ -927,6 +1010,7 @@
       e.target.value = ''; // 連続で同じファイルを読めるようにリセット
     }
 
+    loadConfig();
     loadFromLocal();
 
     // --- Local Storage Auto Save ---
@@ -1037,5 +1121,26 @@
 
     init();
   </script>
+
+  <div id="settings-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>システム設定</h3>
+        <button class="close-btn" onclick="closeSettings()">&times;</button>
+      </div>
+      <div class="modal-grid">
+        <button class="btn" onclick="printMap()">🖨️ 印刷</button>
+        <button class="btn" onclick="exportImage()">📸 画像保存</button>
+        <button class="btn" onclick="exportData()">💾 バックアップ</button>
+        <button class="btn" onclick="document.getElementById('import-file').click()">📂 復元(読込)</button>
+        <input type="file" id="import-file" style="display:none" accept=".json" onchange="importData(event)">
+      </div>
+      <div class="modal-options">
+        <label class="toggle-label"><input type="checkbox" id="auto-save-toggle" checked onchange="toggleAutoSave()"> 自動保存 (オートセーブ)</label>
+        <label class="toggle-label"><input type="checkbox" id="show-stats-toggle" checked onchange="toggleStats()"> アイテム集計を表示</label>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
