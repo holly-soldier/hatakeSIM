@@ -10,33 +10,23 @@
   <link rel="apple-touch-icon" href="./icon-512.png">
 
   <style>
-    /* CSSリセットとベース設定 */
     * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
     body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #f0f4f8; font-family: 'Helvetica Neue', Arial, sans-serif; overflow: hidden; touch-action: none; }
-
-    /* ヘッダー */
     header { background-color: #1b5e20; color: white; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; z-index: 10; position: relative; }
     .title-group { display: flex; align-items: baseline; gap: 8px; }
     h1 { margin: 0; font-size: 18px; font-weight: bold; }
     .version { font-size: 10px; color: #a5d6a7; }
-    
-    /* コントロールパネル */
     #controls { background: white; padding: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 5; position: relative; max-height: 40vh; overflow-y: auto; touch-action: pan-y; }
     .section-title { font-size: 12px; color: #7f8c8d; margin: 0 0 8px 0; font-weight: bold; }
-    
-    /* ボタン類 */
     .btn-group { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
     .btn { padding: 8px 12px; border: 1px solid #ddd; background: white; border-radius: 4px; font-size: 14px; cursor: pointer; transition: 0.2s; white-space: nowrap; }
     .btn.active { background: #2e7d32; color: white; border-color: #2e7d32; }
-    
     .item-palette { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; touch-action: pan-x; }
     .item-btn { flex: 0 0 auto; width: 72px; height: 80px; border: 2px solid #eee; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: white; cursor: pointer; transition: 0.2s; }
     .item-btn.selected { border-color: #4caf50; background: #e8f5e9; }
     .item-icon { width: 32px; height: 32px; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px; margin-bottom: 4px; }
     .item-name { font-size: 10px; font-weight: bold; color: #333; text-align: center; }
     .item-desc { font-size: 8px; color: #777; text-align: center; }
-
-    /* アイコンの色 */
     .c-enh { background: #ff5722; }
     .c-nor { background: #03a9f4; }
     .c-sml { background: #9e9e9e; }
@@ -46,32 +36,23 @@
     .c-brn { background: #795548; }
     .c-ers { background: #f44336; }
     .c-rst { background: #d32f2f; color:white; border-color: #d32f2f;}
-
-    /* 凡例と免責事項 */
     .legend { display: flex; gap: 12px; font-size: 10px; color: #555; margin-top: 4px; flex-wrap: wrap; align-items: center; }
     .legend-item { display: flex; align-items: center; gap: 4px; }
     .legend-box { width: 12px; height: 12px; }
-    
     .disclaimer { margin-top: 12px; padding-top: 8px; border-top: 1px dashed #ccc; font-size: 9px; color: #999; line-height: 1.4; }
-
-    /* マップエリア */
     #map-container { flex: 1; height: calc(100vh - 56px - max(20vh, 180px)); background: #cfd8dc; position: relative; overflow: hidden; touch-action: none; }
     #canvas-wrapper { position: absolute; transform-origin: 0 0; }
     canvas { display: block; }
-    
-    /* チュートリアル・トースト */
     #tutorial-toast { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: white; padding: 8px 16px; border-radius: 20px; font-size: 12px; pointer-events: none; transition: opacity 0.5s; white-space: nowrap; z-index: 20; }
   </style>
 </head>
 <body>
-
   <header>
     <div class="title-group">
       <h1>【非公式】ほの暮らしの庭 畑シミュレーター</h1>
-      <span class="version">v26.10.23</span>
+      <span class="version">v26.10.24</span>
     </div>
   </header>
-
   <div id="controls">
     <div class="section-title">畑のサイズ</div>
     <div class="btn-group">
@@ -79,7 +60,6 @@
       <button class="btn" onclick="changeField(1)">2個目 (29×27)</button>
       <button class="btn" onclick="changeField(2)">3個目 (32×25)</button>
     </div>
-
     <div class="section-title">配置アイテム (タップで選択・建物は再タップで回転)</div>
     <div class="item-palette">
       <div class="item-btn selected" onclick="selectItem('enh')" id="btn-enh">
@@ -98,10 +78,10 @@
         <div class="item-icon c-pad">🌱</div><div class="item-name">水田</div><div class="item-desc">土手生成</div>
       </div>
       <div class="item-btn" onclick="selectItem('cop')" id="btn-cop">
-        <div class="item-icon c-cop">🏠</div><div class="item-name">鶏小屋</div><div class="item-desc" id="desc-cop">6×7</div>
+        <div class="item-icon c-cop">🏠</div><div class="item-name">鶏小屋</div><div class="item-desc" id="desc-cop">特殊 8×6</div>
       </div>
       <div class="item-btn" onclick="selectItem('brn')" id="btn-brn">
-        <div class="item-icon c-brn">🏚️</div><div class="item-name">家畜小屋</div><div class="item-desc" id="desc-brn">10×14</div>
+        <div class="item-icon c-brn">🏚️</div><div class="item-name">家畜小屋</div><div class="item-desc" id="desc-brn">特殊 10×14</div>
       </div>
       <div class="item-btn" onclick="selectItem('ers')" id="btn-ers">
         <div class="item-icon c-ers">🧽</div><div class="item-name">消しゴム</div><div class="item-desc">削除</div>
@@ -110,28 +90,26 @@
         <div class="item-icon c-ers" style="background:transparent; font-size:24px;">🗑️</div><div class="item-name" style="color:white;">リセット</div>
       </div>
     </div>
-
     <div class="legend">
       <div class="legend-item"><div class="legend-box" style="background:rgba(33, 150, 243, 0.4);"></div>水やり範囲</div>
       <div class="legend-item"><div class="legend-box" style="background:rgba(121, 85, 72, 0.4);"></div>水田土手</div>
       <div class="legend-item"><div class="legend-box" style="background:rgba(255, 193, 7, 0.4);"></div>果樹範囲</div>
       <div class="legend-item"><div class="legend-box" style="background:#e0e0e0;"></div>外枠(+3)</div>
       <div class="legend-item"><div class="legend-box" style="background:#212121;"></div>不可</div>
+      <div class="legend-item"><div class="legend-box" style="background:url('data:image/svg+xml;utf8,<svg width=\"10\" height=\"10\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M0 10 L10 0 M-2 2 L2 -2 M8 12 L12 8\" stroke=\"%23ffb74d\" stroke-width=\"2\"/></svg>')"></div>施設不可</div>
+      <div class="legend-item"><div class="legend-box" style="background:#81c784;"></div>出入口</div>
     </div>
-    
     <div class="disclaimer">
       ※当アプリは個人が作成した非公式のファンメイドツールであり、公式の開発元・パブリッシャーとは一切関係ありません。<br>
       ※ゲーム内の仕様変更により、実際の挙動と異なる場合があります。
     </div>
   </div>
-
   <div id="map-container">
     <div id="tutorial-toast">1本指:ドラッグ配置 / 2本指:移動・ズーム</div>
     <div id="canvas-wrapper">
       <canvas id="farmCanvas"></canvas>
     </div>
   </div>
-
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -153,26 +131,71 @@
     ];
     let currentFieldIndex = 0;
     
+    const matrix_cop_norm = [
+      [0,0,0,2,2,2,2,2],
+      [0,1,1,1,1,1,1,2],
+      [3,1,1,1,1,1,1,2],
+      [3,1,1,1,1,1,1,2],
+      [0,1,1,1,1,1,1,0],
+      [0,2,2,2,0,0,0,0]
+    ];
+    const matrix_cop_rot = [
+      [0,0,0,2,2,2],
+      [0,1,1,1,1,2],
+      [0,1,1,1,1,2],
+      [0,1,1,1,1,2],
+      [2,1,1,1,1,2],
+      [2,1,1,1,1,0],
+      [2,1,1,1,1,0],
+      [0,0,3,3,0,0]
+    ];
+    const matrix_brn_norm = [
+      [0,0,0,0,0,2,2,2,2,0],
+      [0,0,0,0,2,2,2,2,2,2],
+      [0,1,1,1,1,1,1,1,1,1],
+      [0,1,1,1,1,1,1,1,1,1],
+      [0,1,1,1,1,1,1,1,1,1],
+      [0,1,1,1,1,1,1,1,1,1],
+      [0,1,1,1,1,1,1,1,1,1],
+      [2,3,1,1,1,1,1,1,1,1],
+      [2,3,1,1,1,1,1,1,1,1],
+      [2,3,1,1,1,1,1,1,1,1],
+      [0,1,1,1,1,1,1,1,1,1],
+      [0,0,1,1,1,1,2,0,0,0],
+      [0,0,0,2,2,2,2,0,0,0],
+      [0,0,0,2,2,2,2,0,0,0]
+    ];
+    const matrix_brn_rot = [
+      [0,0,0,1,1,1,1,1,1,1,1,1,2,0],
+      [0,0,0,1,1,1,1,1,1,1,1,1,2,2],
+      [0,0,0,1,1,1,1,1,1,1,1,1,2,2],
+      [2,2,2,1,1,1,1,1,1,1,1,1,2,2],
+      [2,2,1,1,1,1,1,1,1,1,1,1,2,2],
+      [2,2,1,1,1,1,1,1,1,1,1,1,2,0],
+      [2,2,1,1,1,1,1,1,1,1,1,1,0,0],
+      [0,0,1,1,1,1,1,1,1,1,1,1,0,0],
+      [0,0,0,1,3,3,3,1,1,1,1,1,0,0],
+      [0,0,0,0,2,2,2,0,0,0,0,0,0,0]
+    ];
+
     const items = {
-      'enh': { type: 'sprinkler', w: 1, h: 1, range: 3, color: '#ff5722', label: '強' },
-      'nor': { type: 'sprinkler', w: 1, h: 1, range: 2, color: '#03a9f4', label: '通' },
-      'sml': { type: 'sprinkler', w: 1, h: 1, range: 1, color: '#9e9e9e', label: '小' },
-      'tre': { type: 'tree', w: 1, h: 1, range: 1, color: '#ff9800', label: '🍎' },
-      'pad': { type: 'paddy', w: 1, h: 1, range: 1, color: '#4caf50', label: '🌱' },
-      'cop': { type: 'building', w: 6, h: 7, range: 0, color: '#ffb74d', label: '鶏', rotatable: true },
-      'brn': { type: 'building', w: 10, h: 14, range: 0, color: '#795548', label: '牛', rotatable: true }
+      'enh': { type: 'sprinkler', w: 1, h: 1, range: 3, color: '#ff5722', label: '強', matrixNorm: null, matrixRot: null },
+      'nor': { type: 'sprinkler', w: 1, h: 1, range: 2, color: '#03a9f4', label: '通', matrixNorm: null, matrixRot: null },
+      'sml': { type: 'sprinkler', w: 1, h: 1, range: 1, color: '#9e9e9e', label: '小', matrixNorm: null, matrixRot: null },
+      'tre': { type: 'tree', w: 1, h: 1, range: 1, color: '#ff9800', label: '🍎', matrixNorm: null, matrixRot: null },
+      'pad': { type: 'paddy', w: 1, h: 1, range: 1, color: '#4caf50', label: '🌱', matrixNorm: null, matrixRot: null },
+      'cop': { type: 'building', w: 8, h: 6, range: 0, color: '#ffb74d', label: '鶏', rotatable: true, matrixNorm: matrix_cop_norm, matrixRot: matrix_cop_rot },
+      'brn': { type: 'building', w: 10, h: 14, range: 0, color: '#795548', label: '牛', rotatable: true, matrixNorm: matrix_brn_norm, matrixRot: matrix_brn_rot }
     };
     
     let currentItem = 'enh';
     let rotState = { 'cop': false, 'brn': false };
     
-    // 全畑のデータを保持する配列
     let allGridData = [[], [], []];
     let gridData = allGridData[currentFieldIndex];
     
     let scale = 1, panX = 20, panY = 20, interacted = false;
     let pointers = [], initialPinchDist = 0, initialScale = 1;
-    let initialCx = 0, initialCy = 0, initialPanX = 0, initialPanY = 0;
     let isDragging = false, ghostX = -1, ghostY = -1;
 
     function init() {
@@ -193,9 +216,9 @@
     function selectItem(key) {
       if(key === currentItem && items[key] && items[key].rotatable) {
         rotState[key] = !rotState[key];
-        let w = rotState[key] ? items[key].h : items[key].w;
-        let h = rotState[key] ? items[key].w : items[key].h;
-        document.getElementById(`desc-${key}`).innerText = `${w}×${h}`;
+        let w = items[key].matrixNorm ? (rotState[key] ? items[key].matrixRot[0].length : items[key].matrixNorm[0].length) : (rotState[key] ? items[key].h : items[key].w);
+        let h = items[key].matrixNorm ? (rotState[key] ? items[key].matrixRot.length : items[key].matrixNorm.length) : (rotState[key] ? items[key].w : items[key].h);
+        document.getElementById(`desc-${key}`).innerText = `特殊 ${w}×${h}`;
       }
       currentItem = key;
       document.querySelectorAll('.item-btn').forEach(b => b.classList.remove('selected'));
@@ -226,6 +249,15 @@
       }
     }
 
+    const hatchCanvas = document.createElement('canvas');
+    hatchCanvas.width = 10; hatchCanvas.height = 10;
+    const hctx = hatchCanvas.getContext('2d');
+    hctx.strokeStyle = 'rgba(255, 183, 77, 0.4)';
+    hctx.lineWidth = 1;
+    hctx.beginPath();
+    hctx.moveTo(0, 10); hctx.lineTo(10, 0);
+    hctx.stroke();
+
     function render() {
       const f = fields[currentFieldIndex];
       const map = getMapSize();
@@ -233,7 +265,9 @@
       canvas.height = map.rows * TILE_SIZE;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // 背景グリッド描画
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
       for(let y = 0; y < map.rows; y++) {
         for(let x = 0; x < map.cols; x++) {
           let rx = x * TILE_SIZE, ry = y * TILE_SIZE;
@@ -250,10 +284,17 @@
           ctx.fillRect(rx, ry, TILE_SIZE, TILE_SIZE);
           ctx.strokeStyle = '#cfd8dc';
           ctx.strokeRect(rx, ry, TILE_SIZE, TILE_SIZE);
+
+          if (!isOuter && !isDead) {
+            let coordX = x - 2;
+            let coordY = f.h - (y - 3); 
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.font = '7px Arial';
+            ctx.fillText(`${coordX},${coordY}`, rx + TILE_SIZE/2, ry + TILE_SIZE/2);
+          }
         }
       }
 
-      // ハイライト（土手・果樹範囲）の描画：色が濃くならないように単一レイヤー管理
       let highlightMap = Array(map.rows).fill(null).map(() => Array(map.cols).fill(null));
       
       function applyHighlight(gx, gy, type, range, w, h) {
@@ -273,8 +314,8 @@
       gridData.forEach(d => applyHighlight(d.x, d.y, d.type, d.range, d.w, d.h));
       if(isDragging && ghostX >= 0 && currentItem !== 'ers') {
         let itm = items[currentItem];
-        let gw = (itm.rotatable && rotState[currentItem]) ? itm.h : itm.w;
-        let gh = (itm.rotatable && rotState[currentItem]) ? itm.w : itm.h;
+        let gw = itm.matrixNorm ? (rotState[currentItem] ? itm.matrixRot[0].length : itm.matrixNorm[0].length) : (itm.rotatable && rotState[currentItem] ? itm.h : itm.w);
+        let gh = itm.matrixNorm ? (rotState[currentItem] ? itm.matrixRot.length : itm.matrixNorm.length) : (itm.rotatable && rotState[currentItem] ? itm.w : itm.h);
         applyHighlight(ghostX, ghostY, itm.type, itm.range, gw, gh);
       }
 
@@ -287,7 +328,6 @@
         }
       }
 
-      // スプリンクラー範囲（複数重なって濃くなる）
       function drawSprinklerHighlight(gx, gy, type, range, w, h) {
         if(type === 'sprinkler') {
           ctx.fillStyle = 'rgba(33, 150, 243, 0.4)';
@@ -300,53 +340,88 @@
           }
         }
       }
-
       gridData.forEach(d => drawSprinklerHighlight(d.x, d.y, d.type, d.range, d.w, d.h));
       if(isDragging && ghostX >= 0 && currentItem !== 'ers') {
         let itm = items[currentItem];
-        let gw = (itm.rotatable && rotState[currentItem]) ? itm.h : itm.w;
-        let gh = (itm.rotatable && rotState[currentItem]) ? itm.w : itm.h;
+        let gw = itm.matrixNorm ? (rotState[currentItem] ? itm.matrixRot[0].length : itm.matrixNorm[0].length) : (itm.rotatable && rotState[currentItem] ? itm.h : itm.w);
+        let gh = itm.matrixNorm ? (rotState[currentItem] ? itm.matrixRot.length : itm.matrixNorm.length) : (itm.rotatable && rotState[currentItem] ? itm.w : itm.h);
         drawSprinklerHighlight(ghostX, ghostY, itm.type, itm.range, gw, gh);
       }
 
-      // 本体描画
-      gridData.forEach(d => drawItemBody(d.x, d.y, d.w, d.h, d.color, d.label));
+      function drawItemComplex(gx, gy, itmType, w, h, color, label, matrix) {
+        if (!matrix) {
+          ctx.fillStyle = color;
+          ctx.fillRect(gx * TILE_SIZE, gy * TILE_SIZE, w * TILE_SIZE, h * TILE_SIZE);
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(gx * TILE_SIZE, gy * TILE_SIZE, w * TILE_SIZE, h * TILE_SIZE);
+          ctx.fillStyle = '#fff';
+          ctx.font = '10px Arial';
+          ctx.fillText(label, (gx + w/2) * TILE_SIZE, (gy + h/2) * TILE_SIZE);
+        } else {
+          const pat = ctx.createPattern(hatchCanvas, 'repeat');
+          let textDrawn = false;
+          for(let my = 0; my < matrix.length; my++) {
+            for(let mx = 0; mx < matrix[my].length; mx++) {
+              let val = matrix[my][mx];
+              let tx = (gx + mx) * TILE_SIZE;
+              let ty = (gy + my) * TILE_SIZE;
+              if (val === 1) {
+                ctx.fillStyle = color;
+                ctx.fillRect(tx, ty, TILE_SIZE, TILE_SIZE);
+                if (!textDrawn && my === Math.floor(h/2) && mx === Math.floor(w/2)) {
+                  ctx.fillStyle = '#fff';
+                  ctx.font = '10px Arial';
+                  ctx.fillText(label, tx + TILE_SIZE/2, ty + TILE_SIZE/2);
+                  textDrawn = true;
+                }
+              } else if (val === 2) {
+                ctx.fillStyle = pat;
+                ctx.fillRect(tx, ty, TILE_SIZE, TILE_SIZE);
+              } else if (val === 3) {
+                ctx.fillStyle = '#81c784';
+                ctx.fillRect(tx, ty, TILE_SIZE, TILE_SIZE);
+              }
+              if (val !== 0) {
+                 ctx.strokeStyle = '#fff';
+                 ctx.lineWidth = 0.5;
+                 ctx.strokeRect(tx, ty, TILE_SIZE, TILE_SIZE);
+              }
+            }
+          }
+        }
+      }
+
+      gridData.forEach(d => {
+        drawItemComplex(d.x, d.y, d.type, d.w, d.h, d.color, d.label, d.matrix);
+      });
 
       if(isDragging && ghostX >= 0 && currentItem !== 'ers') {
         let itm = items[currentItem];
-        let gw = (itm.rotatable && rotState[currentItem]) ? itm.h : itm.w;
-        let gh = (itm.rotatable && rotState[currentItem]) ? itm.w : itm.h;
+        let isRot = rotState[currentItem];
+        let mtx = null;
+        if(itm.matrixNorm) mtx = isRot ? itm.matrixRot : itm.matrixNorm;
+        let gw = mtx ? mtx[0].length : (itm.rotatable && isRot ? itm.h : itm.w);
+        let gh = mtx ? mtx.length : (itm.rotatable && isRot ? itm.w : itm.h);
+        
         ctx.globalAlpha = 0.6;
-        let can = canPlace(ghostX, ghostY, gw, gh, itm.type);
-        drawItemBody(ghostX, ghostY, gw, gh, can ? itm.color : 'red', can ? itm.label : 'X');
+        let can = canPlace(ghostX, ghostY, gw, gh, itm.type, mtx);
+        drawItemComplex(ghostX, ghostY, itm.type, gw, gh, can ? itm.color : 'red', can ? itm.label : 'X', mtx);
         ctx.globalAlpha = 1.0;
       }
     }
 
-    function drawItemBody(gx, gy, w, h, color, label) {
-      ctx.fillStyle = color;
-      ctx.fillRect(gx * TILE_SIZE, gy * TILE_SIZE, w * TILE_SIZE, h * TILE_SIZE);
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(gx * TILE_SIZE, gy * TILE_SIZE, w * TILE_SIZE, h * TILE_SIZE);
-      ctx.fillStyle = '#fff';
-      ctx.font = '10px Arial';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(label, (gx + w/2) * TILE_SIZE, (gy + h/2) * TILE_SIZE);
-    }
-
-    function canPlace(x, y, w, h, type) {
+    function canPlace(x, y, w, h, type, matrix) {
       const f = fields[currentFieldIndex];
       const map = getMapSize();
+
       if(x < 0 || y < 0 || x + w > map.cols || y + h > map.rows) return false;
-      if(type === 'building') {
-        if(x < 3 || y < 3 || x + w > f.w + 3 || y + h > f.h + 3) return false;
-      }
+
       if(f.deadzone) {
         for(let iy = y; iy < y + h; iy++) {
           for(let ix = x; ix < x + w; ix++) {
-            let rx = ix - 3; let ry = iy - 3;
+            if (matrix && matrix[iy - y][ix - x] === 0) continue;
+            let rx = ix - 3, ry = iy - 3;
             if(rx >= f.deadzone.x && rx < f.deadzone.x + f.deadzone.w &&
                ry >= f.deadzone.y && ry < f.deadzone.y + f.deadzone.h) return false;
           }
@@ -354,22 +429,23 @@
       }
 
       for(let item of gridData) {
-        // 本体同士の重なり
-        if (x < item.x + item.w && x + w > item.x &&
-            y < item.y + item.h && y + h > item.y) {
-          return false;
-        }
-        // 果樹に関する制約（果樹と建物・果樹は周囲1マス内で交差禁止）
-        if (type === 'tree' && (item.type === 'tree' || item.type === 'building')) {
-          if (x - 1 < item.x + item.w && x + w + 1 > item.x &&
-              y - 1 < item.y + item.h && y + h + 1 > item.y) {
-            return false;
-          }
-        }
-        if ((type === 'tree' || type === 'building') && item.type === 'tree') {
-          if (x < item.x + item.w + 1 && x + w > item.x - 1 &&
-              y < item.y + item.h + 1 && y + h > item.y - 1) {
-            return false;
+        for(let iy = y; iy < y + h; iy++) {
+          for(let ix = x; ix < x + w; ix++) {
+            let val = matrix ? matrix[iy - y][ix - x] : 1;
+            if (val === 0) continue; 
+            for(let ey = item.y; ey < item.y + item.h; ey++) {
+              for(let ex = item.x; ex < item.x + item.w; ex++) {
+                let evalVal = item.matrix ? item.matrix[ey - item.y][ex - item.x] : 1;
+                if (evalVal === 0) continue; 
+                if (ix === ex && iy === ey) return false;
+                if (type === 'tree' && (item.type === 'tree' || item.type === 'building')) {
+                  if (Math.abs(ix - ex) <= 1 && Math.abs(iy - ey) <= 1) return false;
+                }
+                if ((type === 'tree' || type === 'building') && item.type === 'tree') {
+                  if (Math.abs(ix - ex) <= 1 && Math.abs(iy - ey) <= 1) return false;
+                }
+              }
+            }
           }
         }
       }
@@ -389,12 +465,23 @@
         isDragging = true;
         let pos = getGridPos(e.clientX, e.clientY);
         if(currentItem === 'ers') {
-          let idx = gridData.findIndex(d => pos.gx >= d.x && pos.gx < d.x + d.w && pos.gy >= d.y && pos.gy < d.y + d.h);
+          let idx = gridData.findIndex(d => {
+            if (pos.gx >= d.x && pos.gx < d.x + d.w && pos.gy >= d.y && pos.gy < d.y + d.h) {
+              if (d.matrix) {
+                let val = d.matrix[pos.gy - d.y][pos.gx - d.x];
+                return val !== 0; 
+              }
+              return true;
+            }
+            return false;
+          });
           if(idx !== -1) gridData.splice(idx, 1);
         } else {
           let itm = items[currentItem];
-          let w = (itm.rotatable && rotState[currentItem]) ? itm.h : itm.w;
-          let h = (itm.rotatable && rotState[currentItem]) ? itm.w : itm.h;
+          let isRot = rotState[currentItem];
+          let mtx = itm.matrixNorm ? (isRot ? itm.matrixRot : itm.matrixNorm) : null;
+          let w = mtx ? mtx[0].length : (itm.rotatable && isRot ? itm.h : itm.w);
+          let h = mtx ? mtx.length : (itm.rotatable && isRot ? itm.w : itm.h);
           ghostX = pos.gx - Math.floor(w/2);
           ghostY = pos.gy - Math.floor(h/2);
         }
@@ -405,10 +492,6 @@
         let p1 = pointers[0], p2 = pointers[1];
         initialPinchDist = Math.hypot(p1.clientX - p2.clientX, p1.clientY - p2.clientY);
         initialScale = scale;
-        initialCx = (p1.clientX + p2.clientX) / 2;
-        initialCy = (p1.clientY + p2.clientY) / 2;
-        initialPanX = panX;
-        initialPanY = panY;
       }
     });
 
@@ -420,8 +503,10 @@
         let pos = getGridPos(e.clientX, e.clientY);
         let itm = items[currentItem];
         if(itm && currentItem !== 'ers') {
-          let w = (itm.rotatable && rotState[currentItem]) ? itm.h : itm.w;
-          let h = (itm.rotatable && rotState[currentItem]) ? itm.w : itm.h;
+          let isRot = rotState[currentItem];
+          let mtx = itm.matrixNorm ? (isRot ? itm.matrixRot : itm.matrixNorm) : null;
+          let w = mtx ? mtx[0].length : (itm.rotatable && isRot ? itm.h : itm.w);
+          let h = mtx ? mtx.length : (itm.rotatable && isRot ? itm.w : itm.h);
           ghostX = pos.gx - Math.floor(w/2);
           ghostY = pos.gy - Math.floor(h/2);
           render();
@@ -433,20 +518,30 @@
         let cy = (p1.clientY + p2.clientY) / 2;
         let dist = Math.hypot(p1.clientX - p2.clientX, p1.clientY - p2.clientY);
         
-        let newScale = initialScale * (dist / initialPinchDist);
-        newScale = Math.max(0.5, Math.min(newScale, 3.0));
-        
-        let deltaX = cx - initialCx;
-        let deltaY = cy - initialCy;
-        
+        if (!this.lastCx) {
+          this.lastCx = cx; this.lastCy = cy; this.lastDist = dist;
+          return;
+        }
+
+        let deltaX = cx - this.lastCx;
+        let deltaY = cy - this.lastCy;
+        let scaleRatio = dist / this.lastDist;
+
         let rect = container.getBoundingClientRect();
-        let initialCxRel = initialCx - rect.left;
-        let initialCyRel = initialCy - rect.top;
-        
-        panX = initialPanX + deltaX + initialCxRel * (1 - newScale / initialScale);
-        panY = initialPanY + deltaY + initialCyRel * (1 - newScale / initialScale);
-        scale = newScale;
-        
+        let pointerRelX = cx - rect.left;
+        let pointerRelY = cy - rect.top;
+
+        panX += deltaX;
+        panY += deltaY;
+
+        let newScale = scale * scaleRatio;
+        if (newScale >= 0.5 && newScale <= 4.0) {
+           panX = pointerRelX - (pointerRelX - panX) * scaleRatio;
+           panY = pointerRelY - (pointerRelY - panY) * scaleRatio;
+           scale = newScale;
+        }
+
+        this.lastCx = cx; this.lastCy = cy; this.lastDist = dist;
         updateTransform();
       }
     });
@@ -454,18 +549,25 @@
     container.addEventListener('pointerup', e => {
       let idx = pointers.findIndex(p => p.pointerId === e.pointerId);
       if(idx !== -1) pointers.splice(idx, 1);
+      
+      if(pointers.length < 2) {
+         this.lastCx = null; this.lastCy = null; this.lastDist = null;
+      }
 
       if(pointers.length === 0 && isDragging) {
         isDragging = false;
         if(currentItem !== 'ers' && ghostX >= 0) {
           let itm = items[currentItem];
-          let w = (itm.rotatable && rotState[currentItem]) ? itm.h : itm.w;
-          let h = (itm.rotatable && rotState[currentItem]) ? itm.w : itm.h;
-          if(canPlace(ghostX, ghostY, w, h, itm.type)) {
+          let isRot = rotState[currentItem];
+          let mtx = itm.matrixNorm ? (isRot ? itm.matrixRot : itm.matrixNorm) : null;
+          let w = mtx ? mtx[0].length : (itm.rotatable && isRot ? itm.h : itm.w);
+          let h = mtx ? mtx.length : (itm.rotatable && isRot ? itm.w : itm.h);
+          if(canPlace(ghostX, ghostY, w, h, itm.type, mtx)) {
             gridData.push({
               id: Date.now(), type: itm.type,
               x: ghostX, y: ghostY, w: w, h: h,
-              range: itm.range, color: itm.color, label: itm.label
+              range: itm.range, color: itm.color, label: itm.label,
+              matrix: mtx
             });
           }
         }
@@ -475,7 +577,9 @@
     });
     
     container.addEventListener('pointercancel', e => {
-      pointers = []; isDragging = false; ghostX = -1; ghostY = -1; render();
+      pointers = []; isDragging = false; ghostX = -1; ghostY = -1; 
+      this.lastCx = null; this.lastCy = null; this.lastDist = null;
+      render();
     });
 
     init();
