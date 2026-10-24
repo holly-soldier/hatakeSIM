@@ -50,7 +50,7 @@
     .legend-box { width: 12px; height: 12px; }
     .legend-pattern { background: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255, 183, 77, 0.4) 2px, rgba(255, 183, 77, 0.4) 4px); border: 1px solid #ddd; }
 
-    #workspace { flex: 1; display: flex; flex-direction: column; height: calc(100vh - 56px - max(20vh, 180px)); background: #cfd8dc; position: relative; overflow: hidden; touch-action: none; }
+    #workspace { flex: 1; display: flex; flex-direction: column; height: calc(100vh - 56px - max(20vh, 180px) - 50px); background: #cfd8dc; position: relative; overflow: hidden; touch-action: none; }
     #ruler-top { height: 20px; background: #e0e0e0; border-bottom: 1px solid #999; position: absolute; top: 0; left: 20px; right: 0; z-index: 2; overflow: hidden; pointer-events: none;}
     #ruler-left { width: 20px; background: #e0e0e0; border-right: 1px solid #999; position: absolute; top: 20px; left: 0; bottom: 0; z-index: 2; overflow: hidden; pointer-events: none;}
     #ruler-corner { width: 20px; height: 20px; background: #d5d5d5; border-right: 1px solid #999; border-bottom: 1px solid #999; position: absolute; top: 0; left: 0; z-index: 3; pointer-events: none;}
@@ -69,13 +69,18 @@
       #canvas-wrapper { transform: none !important; position: static !important; margin: 0 auto; display: block !important; }
       canvas { max-width: 100%; height: auto; page-break-inside: avoid; border: 1px solid #ccc; }
     }
+
+    #stats-panel { background: white; padding: 12px; box-shadow: 0 -2px 4px rgba(0,0,0,0.1); z-index: 5; position: relative; max-height: 20vh; overflow-y: auto; font-size: 12px; }
+    .stats-title { font-weight: bold; color: #333; margin-bottom: 4px; display: flex; justify-content: space-between;}
+    .stats-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .stat-item { background: #e8f5e9; border: 1px solid #4caf50; padding: 4px 8px; border-radius: 4px; display: flex; align-items: center; gap: 4px; }
 </style>
 </head>
 <body>
   <header>
     <div class="title-group">
       <h1>【非公式】畑シミュレーター</h1>
-      <span class="version">v26.10.25.0812</span>
+      <span class="version">v26.10.25.0820</span>
     </div>
   </header>
   
@@ -144,6 +149,14 @@
     </div>
   </div>
   
+  
+  <div id="stats-panel">
+    <div class="stats-title"><span>配置アイテム集計 (現在の畑)</span></div>
+    <div class="stats-list" id="stats-container">
+      <!-- 統計情報がここに表示されます -->
+    </div>
+  </div>
+
   <div id="workspace">
     <div id="ruler-corner"></div>
     <div id="ruler-top"><canvas id="canvas-ruler-top"></canvas></div>
@@ -912,6 +925,114 @@
       };
       reader.readAsText(file);
       e.target.value = ''; // 連続で同じファイルを読めるようにリセット
+    }
+
+    loadFromLocal();
+
+    // --- Local Storage Auto Save ---
+    let autoSaveEnabled = true;
+    function toggleAutoSave() {
+      autoSaveEnabled = document.getElementById('auto-save-toggle').checked;
+      if (autoSaveEnabled) saveToLocal();
+    }
+    
+    function saveToLocal() {
+      if (!autoSaveEnabled) return;
+      try {
+        localStorage.setItem('farmSimData', JSON.stringify({
+          version: 1,
+          allGridData: allGridData
+        }));
+      } catch (e) {
+        console.warn('Auto-save failed:', e);
+      }
+    }
+    
+    function loadFromLocal() {
+      try {
+        const saved = localStorage.getItem('farmSimData');
+        if (saved) {
+          const data = JSON.parse(saved);
+          if (data && data.allGridData) {
+            allGridData = data.allGridData;
+            gridData = allGridData[currentFieldIndex];
+          }
+        }
+      } catch (e) {
+        console.warn('Load failed:', e);
+      }
+    }
+
+    // Override saveHistory to trigger auto-save and update stats
+    const originalSaveHistory = saveHistory;
+    saveHistory = function() {
+      originalSaveHistory();
+    };
+
+    // Override render to trigger auto-save and update stats AFTER drawing
+    const originalRender = render;
+    render = function() {
+      originalRender();
+      if(typeof updateStats === 'function') updateStats();
+      if(typeof saveToLocal === 'function') saveToLocal();
+    };
+
+    // --- Stats Calculation ---
+    function updateStats() {
+      const container = document.getElementById('stats-container');
+      if(!container) return;
+      container.innerHTML = '';
+      
+      const counts = {};
+      gridData.forEach(item => {
+        counts[item.type] = (counts[item.type] || 0) + 1;
+        // Group buildings by specific item name
+        let key = item.label;
+        if(item.type === 'sprinkler') key = item.label + 'スプ';
+        counts[key] = (counts[key] || 0) + 1;
+      });
+
+      const typesToCount = ['強スプ', '普スプ', '小スプ', '🍎', '🌱', '鶏', '牛', '馬'];
+      const emojis = {'強スプ':'💧','普スプ':'💧','小スプ':'💧','🍎':'🍎','🌱':'🌱','鶏':'🏠','牛':'🏚️','馬':'🐴'};
+      
+      let hasItems = false;
+      typesToCount.forEach(key => {
+        if (counts[key]) {
+          hasItems = true;
+          const el = document.createElement('div');
+          el.className = 'stat-item';
+          el.innerHTML = `<span>${emojis[key] || ''}</span> <span>${key}: <b>${counts[key]}</b></span>`;
+          container.appendChild(el);
+        }
+      });
+      
+      if (!hasItems) {
+        container.innerHTML = '<span style="color:#777;">配置されたアイテムはありません。</span>';
+      }
+    }
+
+    // --- Image Export ---
+    function exportImage() {
+      const exportCanvas = document.createElement('canvas');
+      const f = fields[currentFieldIndex];
+      const map = getMapSize();
+      exportCanvas.width = map.cols * TILE_SIZE;
+      exportCanvas.height = map.rows * TILE_SIZE;
+      const eCtx = exportCanvas.getContext('2d');
+      
+      // Draw background
+      eCtx.fillStyle = '#cfd8dc';
+      eCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+      
+      // Render to hidden canvas
+      eCtx.drawImage(canvas, 0, 0);
+      
+      const a = document.createElement('a');
+      a.href = exportCanvas.toDataURL('image/png');
+      let d = new Date();
+      let dStr = `${d.getFullYear()}${(d.getMonth()+1).toString().padStart(2,'0')}${d.getDate().toString().padStart(2,'0')}_${d.getHours().toString().padStart(2,'0')}${d.getMinutes().toString().padStart(2,'0')}`;
+      a.download = `farm_layout_${dStr}.png`;
+      a.click();
     }
 
     init();
