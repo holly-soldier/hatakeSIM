@@ -32,7 +32,8 @@
     .item-btn.selected { border-color: #4caf50; background: #e8f5e9; }
     .item-icon { width: 32px; height: 32px; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px; margin-bottom: 4px; }
     .item-name { font-size: 10px; font-weight: bold; color: #333; text-align: center; }
-    .item-desc { font-size: 8px; color: #777; text-align: center; }
+    .item-desc { font-size: 9px; color: #777; text-align: center; font-weight: bold; }
+    .desc-rot { color: #d32f2f; }
 
     .c-enh { background: #ff5722; }
     .c-nor { background: #03a9f4; }
@@ -58,7 +59,7 @@
     
     #map-container { position: absolute; top: 20px; left: 20px; right: 0; bottom: 0; overflow: hidden; touch-action: none; }
     #canvas-wrapper { position: absolute; transform-origin: 0 0; }
-    canvas { display: block; }
+    canvas { display: block; image-rendering: pixelated; }
     
     #tutorial-toast { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: white; padding: 8px 16px; border-radius: 20px; font-size: 12px; pointer-events: none; transition: opacity 0.5s; white-space: nowrap; z-index: 20; }
   
@@ -103,7 +104,7 @@
   <header>
     <div class="title-group">
       <h1>【非公式】畑シミュレーター</h1>
-      <span class="version">v26.10.25.0931</span>
+      <span class="version">v26.10.25.0958</span>
     </div>
     <button class="settings-btn" onclick="openSettings()">⚙️ 設定</button>
   </header>
@@ -142,13 +143,13 @@
         <div class="item-icon c-pad">🌱</div><div class="item-name">水田</div><div class="item-desc">土手生成</div>
       </div>
       <div class="item-btn" onclick="selectItem('cop')" id="btn-cop">
-        <div class="item-icon c-cop">🏠</div><div class="item-name">鶏小屋</div><div class="item-desc" id="desc-cop">特殊 8×6</div>
+        <div class="item-icon c-cop">🏠</div><div class="item-name">鶏小屋</div><div class="item-desc" id="desc-cop" style="color: #d32f2f;">横 8×6</div>
       </div>
       <div class="item-btn" onclick="selectItem('brn')" id="btn-brn">
-        <div class="item-icon c-brn">🏚️</div><div class="item-name">家畜小屋</div><div class="item-desc" id="desc-brn">特殊 10×14</div>
+        <div class="item-icon c-brn">🏚️</div><div class="item-name">家畜小屋</div><div class="item-desc" id="desc-brn" style="color: #1976d2;">縦 10×14</div>
       </div>
       <div class="item-btn" onclick="selectItem('hrs')" id="btn-hrs">
-        <div class="item-icon c-hrs">🐴</div><div class="item-name">馬小屋</div><div class="item-desc" id="desc-hrs">特殊 8×8</div>
+        <div class="item-icon c-hrs">🐴</div><div class="item-name">馬小屋</div><div class="item-desc" id="desc-hrs" style="color: #1976d2;">縦 8×8</div>
       </div>
       <div class="item-btn" onclick="selectItem('ers')" id="btn-ers">
         <div class="item-icon c-ers">🧽</div><div class="item-name">消しゴム</div><div class="item-desc">削除</div>
@@ -171,7 +172,7 @@
   
   
   <div id="stats-panel">
-    <div class="stats-title"><span>配置アイテム集計 (現在の畑)</span></div>
+    <div class="stats-title" style="align-items: center;"><span>配置アイテム集計 <span id="stats-scope-label" style="font-weight:normal; color:#666;">(現在の畑)</span></span> <button class="btn-undo" onclick="toggleStatsScope()" style="margin: 0; font-size: 10px; padding: 2px 6px;">切替</button></div>
     <div class="stats-list" id="stats-container">
       <!-- 統計情報がここに表示されます -->
     </div>
@@ -271,9 +272,9 @@
       'sml': { type: 'sprinkler', w: 1, h: 1, range: 1, color: '#9e9e9e', label: '小', matrixNorm: null, matrixRot: null },
       'tre': { type: 'tree', w: 1, h: 1, range: 1, color: '#ff9800', label: '🍎', matrixNorm: null, matrixRot: null },
       'pad': { type: 'paddy', w: 1, h: 1, range: 1, color: '#4caf50', label: '🌱', matrixNorm: null, matrixRot: null },
-      'cop': { type: 'building', w: 8, h: 6, range: 0, color: '#ffb74d', label: '鶏', rotatable: true, matrixNorm: matrix_cop_norm, matrixRot: matrix_cop_rot },
-      'brn': { type: 'building', w: 10, h: 14, range: 0, color: '#795548', label: '牛', rotatable: true, matrixNorm: matrix_brn_norm, matrixRot: matrix_brn_rot },
-      'hrs': { type: 'building', w: 8, h: 8, range: 0, color: '#8d6e63', label: '馬', rotatable: true, matrixNorm: matrix_hrs_norm, matrixRot: matrix_hrs_rot }
+      'cop': { type: 'building', w: 8, h: 6, range: 0, color: '#ffb74d', label: '鶏', rotatable: true, matrixNorm: matrix_cop_norm, matrixRot: matrix_cop_rot, dirNorm: '横', dirRot: '縦' },
+      'brn': { type: 'building', w: 10, h: 14, range: 0, color: '#795548', label: '牛', rotatable: true, matrixNorm: matrix_brn_norm, matrixRot: matrix_brn_rot, dirNorm: '縦', dirRot: '横' },
+      'hrs': { type: 'building', w: 8, h: 8, range: 0, color: '#8d6e63', label: '馬', rotatable: true, matrixNorm: matrix_hrs_norm, matrixRot: matrix_hrs_rot, dirNorm: '縦', dirRot: '横' }
     };
     
     let currentItem = 'enh';
@@ -333,6 +334,15 @@
       gridData = allGridData[idx];
       history = allHistory[idx];
       updateUndoButton();
+      
+      // ズーム倍率をリセット
+      panX = 20; panY = 20;
+      const f = fields[currentFieldIndex];
+      const mapCols = f.matrix ? f.matrix[0].length : f.w + 6;
+      const workspaceWidth = wrapper.parentElement.clientWidth;
+      scale = Math.min(1, Math.max(0.3, (workspaceWidth - 40) / (mapCols * TILE_SIZE)));
+      updateTransform();
+      
       render();
     }
 
@@ -341,7 +351,10 @@
         rotState[key] = !rotState[key];
         let w = items[key].matrixNorm ? (rotState[key] ? items[key].matrixRot[0].length : items[key].matrixNorm[0].length) : (rotState[key] ? items[key].h : items[key].w);
         let h = items[key].matrixNorm ? (rotState[key] ? items[key].matrixRot.length : items[key].matrixNorm.length) : (rotState[key] ? items[key].w : items[key].h);
-        document.getElementById(`desc-${key}`).innerText = `特殊 ${w}×${h}`;
+        const descEl = document.getElementById(`desc-${key}`);
+        let dir = rotState[key] ? items[key].dirRot : items[key].dirNorm;
+        descEl.innerHTML = `${dir} ${w}×${h}`;
+        descEl.style.color = (dir === '横') ? '#d32f2f' : '#1976d2';
       }
       currentItem = key;
       document.querySelectorAll('.item-btn').forEach(b => b.classList.remove('selected'));
@@ -926,13 +939,21 @@
     };
 
     // --- Stats Calculation ---
+    let statsScope = 'current';
+    function toggleStatsScope() {
+      statsScope = (statsScope === 'current') ? 'all' : 'current';
+      document.getElementById('stats-scope-label').innerText = (statsScope === 'current') ? '(現在の畑)' : '(畑全体)';
+      updateStats();
+    }
+    
     function updateStats() {
       const container = document.getElementById('stats-container');
       if(!container) return;
       container.innerHTML = '';
       
       const counts = {};
-      gridData.forEach(item => {
+      let targetData = (statsScope === 'current') ? gridData : allGridData.flat();
+      targetData.forEach(item => {
         counts[item.type] = (counts[item.type] || 0) + 1;
         // Group buildings by specific item name
         let key = item.label;
