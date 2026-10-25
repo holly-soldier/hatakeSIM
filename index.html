@@ -11,7 +11,7 @@
 
   <style>
     * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
-    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #f0f4f8; font-family: 'Helvetica Neue', Arial, sans-serif; overflow: hidden; touch-action: none; display: flex; flex-direction: column; }
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; position: fixed; top: 0; left: 0; background-color: #f0f4f8; font-family: 'Helvetica Neue', Arial, sans-serif; overflow: hidden; display: flex; flex-direction: column; overscroll-behavior: none; }
     
     header { background-color: #1b5e20; color: white; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; z-index: 10; position: relative; flex: 0 0 auto; }
     .title-group { display: flex; align-items: baseline; gap: 8px; }
@@ -45,7 +45,8 @@
     .c-ers { background: #f44336; }
     .c-rst { background: #d32f2f; color:white; border-color: #d32f2f;}
 
-    .legend { display: flex; gap: 12px; font-size: 10px; color: #555; margin-top: 4px; flex-wrap: wrap; align-items: center; }
+    .legend { display: flex; gap: 6px; font-size: 10px; color: #555; margin-top: 4px; flex-wrap: nowrap; overflow-x: auto; align-items: center; white-space: nowrap; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .legend::-webkit-scrollbar { display: none; }
     .legend-item { display: flex; align-items: center; gap: 4px; }
     .legend-box { width: 12px; height: 12px; }
     .legend-pattern { background: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255, 183, 77, 0.4) 2px, rgba(255, 183, 77, 0.4) 4px); border: 1px solid #ddd; }
@@ -61,9 +62,7 @@
     
     #tutorial-toast { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: white; padding: 8px 16px; border-radius: 20px; font-size: 12px; pointer-events: none; transition: opacity 0.5s; white-space: nowrap; z-index: 20; }
   
-    @media print {
-      body, html { overflow: visible !important; height: auto !important; background: white !important; }
-      header, #controls, #tutorial-toast, #ruler-top, #ruler-left, #ruler-corner { display: none !important; }
+    header, #controls, #tutorial-toast, #ruler-top, #ruler-left, #ruler-corner { display: none !important; }
       #workspace { height: auto !important; background: white !important; overflow: visible !important; display: block !important; }
       #map-container { position: static !important; overflow: visible !important; display: block !important; }
       #canvas-wrapper { transform: none !important; position: static !important; margin: 0 auto; display: block !important; }
@@ -109,7 +108,7 @@
   <header>
     <div class="title-group">
       <h1>【非公式】畑シミュレーター</h1>
-      <span class="version">v26.10.25.0903</span>
+      <span class="version">v26.10.25.0920</span>
     </div>
     <button class="settings-btn" onclick="openSettings()">⚙️ 設定</button>
   </header>
@@ -165,11 +164,11 @@
     </div>
     
     <div class="legend">
-      <div class="legend-item"><div class="legend-box" style="background:rgba(33, 150, 243, 0.4);"></div>水やり範囲</div>
+      <div class="legend-item"><div class="legend-box" style="background:rgba(33, 150, 243, 0.4);"></div>水やり</div>
       <div class="legend-item"><div class="legend-box" style="background:rgba(121, 85, 72, 0.4);"></div>水田土手</div>
       <div class="legend-item"><div class="legend-box" style="background:rgba(255, 193, 7, 0.4);"></div>果樹範囲</div>
       <div class="legend-item"><div class="legend-box" style="background:#ffffff; border:1px solid #ccc;"></div>畑</div>
-      <div class="legend-item"><div class="legend-box" style="background:#e0e0e0;"></div>外枠/空白</div>
+      <div class="legend-item"><div class="legend-box" style="background:#e0e0e0;"></div>空白</div>
       <div class="legend-item"><div class="legend-box" style="background:#212121;"></div>不可</div>
       <div class="legend-item"><div class="legend-box legend-pattern"></div>建物周囲</div>
     </div>
@@ -969,22 +968,7 @@
     
 
   
-    function printMap() {
-      closeSettings(); // モーダルを閉じる
-      setTimeout(() => {
-        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
-          alert("アプリ版（PWA）では印刷機能が制限される場合があります。代わりに「📸 画像保存」機能をご利用ください。");
-        }
-        let oldScale = scale, oldPanX = panX, oldPanY = panY;
-        scale = 1; panX = 0; panY = 0;
-        updateTransform();
-        window.print();
-        setTimeout(() => {
-          scale = oldScale; panX = oldPanX; panY = oldPanY;
-          updateTransform();
-        }, 500);
-      }, 300); // モーダルが閉じるのを待つ
-    }
+    
 
     function exportData() {
       closeSettings();
@@ -1031,29 +1015,7 @@
       e.target.value = ''; 
     }
 
-    function exportImage() {
-      closeSettings();
-      setTimeout(() => {
-        const exportCanvas = document.createElement('canvas');
-        const f = fields[currentFieldIndex];
-        const map = getMapSize();
-        exportCanvas.width = map.cols * TILE_SIZE;
-        exportCanvas.height = map.rows * TILE_SIZE;
-        const eCtx = exportCanvas.getContext('2d');
-        
-        eCtx.fillStyle = '#cfd8dc';
-        eCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
-        
-        eCtx.drawImage(canvas, 0, 0);
-        
-        const a = document.createElement('a');
-        a.href = exportCanvas.toDataURL('image/png');
-        let d = new Date();
-        let dStr = `${d.getFullYear()}${(d.getMonth()+1).toString().padStart(2,'0')}${d.getDate().toString().padStart(2,'0')}_${d.getHours().toString().padStart(2,'0')}${d.getMinutes().toString().padStart(2,'0')}`;
-        a.download = `farm_layout_${dStr}.png`;
-        a.click();
-      }, 300);
-    }
+    
     
     init();
 
@@ -1066,8 +1028,6 @@
         <button class="close-btn" onclick="closeSettings()">&times;</button>
       </div>
       <div class="modal-grid">
-        <button class="btn" onclick="printMap()">🖨️ 印刷</button>
-        <button class="btn" onclick="exportImage()">📸 画像保存</button>
         <button class="btn" onclick="exportData()">💾 バックアップ</button>
         <button class="btn" onclick="document.getElementById('import-file').click()">📂 復元(読込)</button>
         <input type="file" id="import-file" style="display:none" accept=".json" onchange="importData(event)">
