@@ -17,10 +17,15 @@
     .title-group { display: flex; align-items: baseline; gap: 8px; }
     h1 { margin: 0; font-size: 16px; font-weight: bold; }
     .version { font-size: 10px; color: #a5d6a7; }
+    .settings-btn { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 4px; transition: 0.2s; }
+    .settings-btn:hover { background: rgba(255,255,255,0.3); }
     
     #controls { background: white; padding: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 5; position: relative; max-height: 40vh; overflow-y: auto; touch-action: pan-y; flex: 0 0 auto; }
+    .field-selector-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .field-selector-row .section-title { margin: 0; }
+    .field-selector-row .btn-group { margin: 0; margin-bottom: 0; }
     .section-title { font-size: 12px; color: #7f8c8d; margin: 0 0 8px 0; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
-    .btn-group { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
     .btn { padding: 8px 12px; border: 1px solid #ddd; background: white; border-radius: 4px; font-size: 14px; cursor: pointer; transition: 0.2s; white-space: nowrap; }
     .btn.active { background: #2e7d32; color: white; border-color: #2e7d32; }
     
@@ -33,7 +38,6 @@
     .item-icon { width: 32px; height: 32px; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px; margin-bottom: 4px; }
     .item-name { font-size: 10px; font-weight: bold; color: #333; text-align: center; }
     .item-desc { font-size: 9px; color: #777; text-align: center; font-weight: bold; }
-    .desc-rot { color: #d32f2f; }
 
     .c-enh { background: #ff5722; }
     .c-nor { background: #03a9f4; }
@@ -52,6 +56,11 @@
     .legend-box { width: 12px; height: 12px; }
     .legend-pattern { background: repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(255, 183, 77, 0.4) 2px, rgba(255, 183, 77, 0.4) 4px); border: 1px solid #ddd; }
 
+    #stats-panel { background: white; padding: 12px; box-shadow: 0 -2px 4px rgba(0,0,0,0.1); z-index: 5; position: relative; max-height: 20vh; overflow-y: auto; font-size: 12px; flex: 0 0 auto; }
+    .stats-title { font-weight: bold; color: #333; margin-bottom: 4px; display: flex; justify-content: space-between;}
+    .stats-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .stat-item { background: #e8f5e9; border: 1px solid #4caf50; padding: 4px 8px; border-radius: 4px; display: flex; align-items: center; gap: 4px; }
+
     #workspace { flex: 1; display: flex; flex-direction: column; background: #cfd8dc; position: relative; overflow: hidden; touch-action: none; }
     #ruler-top { height: 20px; background: #e0e0e0; border-bottom: 1px solid #999; position: absolute; top: 0; left: 20px; right: 0; z-index: 2; overflow: hidden; pointer-events: none;}
     #ruler-left { width: 20px; background: #e0e0e0; border-right: 1px solid #999; position: absolute; top: 20px; left: 0; bottom: 0; z-index: 2; overflow: hidden; pointer-events: none;}
@@ -63,28 +72,6 @@
     
     #tutorial-toast { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: white; padding: 8px 16px; border-radius: 20px; font-size: 12px; pointer-events: none; transition: opacity 0.5s; white-space: nowrap; z-index: 20; }
   
-
-
-    #stats-panel { background: white; padding: 12px; box-shadow: 0 -2px 4px rgba(0,0,0,0.1); z-index: 5; position: relative; max-height: 20vh; overflow-y: auto; font-size: 12px; }
-    .stats-title { font-weight: bold; color: #333; margin-bottom: 4px; display: flex; justify-content: space-between;}
-    .stats-list { display: flex; flex-wrap: wrap; gap: 8px; }
-    .stat-item { background: #e8f5e9; border: 1px solid #4caf50; padding: 4px 8px; border-radius: 4px; display: flex; align-items: center; gap: 4px; }
-.title-group { display: flex; align-items: baseline; gap: 8px; }
-    h1 { margin: 0; font-size: 16px; font-weight: bold; }
-    .version { font-size: 10px; color: #a5d6a7; }
-    .settings-btn { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 4px; transition: 0.2s; }
-    .settings-btn:hover { background: rgba(255,255,255,0.3); }
-    
-    #controls { background: white; padding: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 5; position: relative; max-height: 40vh; overflow-y: auto; touch-action: pan-y; flex: 0 0 auto; }
-    
-    .field-selector-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-    .field-selector-row .section-title { margin: 0; }
-    .field-selector-row .btn-group { margin: 0; margin-bottom: 0; }
-    
-    #stats-panel { background: white; padding: 12px; box-shadow: 0 -2px 4px rgba(0,0,0,0.1); z-index: 5; position: relative; max-height: 20vh; overflow-y: auto; font-size: 12px; flex: 0 0 auto; }
-    
-    #workspace { flex: 1; display: flex; flex-direction: column; background: #cfd8dc; position: relative; overflow: hidden; touch-action: none; }
-    
     .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; touch-action: none;}
     .modal-content { background-color: white; padding: 20px; border-radius: 12px; width: 90%; max-width: 320px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #eee; padding-bottom: 8px;}
@@ -94,9 +81,6 @@
     .modal-grid .btn { width: 100%; justify-content: center; font-size: 13px; }
     .modal-options { display: flex; flex-direction: column; gap: 12px; border-top: 1px solid #eee; padding-top: 12px;}
     .toggle-label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #333; cursor: pointer; }
-    
-    .pattern-invalid { background: repeating-linear-gradient(45deg, #555, #555 2px, #212121 2px, #212121 4px); }
-
 </style>
 </head>
 <body>
@@ -109,8 +93,6 @@
     <button class="settings-btn" onclick="openSettings()">⚙️ 設定</button>
   </header>
 
-  
-  
   <div id="controls">
     <div class="field-selector-row">
       <div class="section-title">畑の選択</div>
@@ -122,7 +104,7 @@
     </div>
     
     <div class="section-title">
-<span>配置アイテム (タップで選択・建物は再タップで回転)</span>
+      <span>配置アイテム (タップで選択・建物は再タップで回転)</span>
       <button class="btn-undo" onclick="undo()" id="btn-undo" disabled>↩ 戻る</button>
     </div>
     
@@ -183,7 +165,6 @@
       <div class="legend-item"><div class="legend-box legend-pattern"></div>建物周囲</div>
     </div>
   </div>
-  
   
   <div id="stats-panel">
     <div class="stats-title" style="align-items: center;"><span>配置アイテム集計 <span id="stats-scope-label" style="font-weight:normal; color:#666;">(現在の畑)</span></span> <button class="btn-undo" onclick="toggleStatsScope()" style="margin: 0; font-size: 10px; padding: 2px 6px;">切替</button></div>
@@ -359,10 +340,11 @@
     }
     function closeFillModal() {
       document.getElementById('fill-modal').style.display = 'none';
-      selectStartX = -1; render();
+      selectStartX = -1; // ズレ防止：モーダルを閉じた時（または処理完了時）にのみリセットする
+      render();
     }
+    
     function executeFill(key) {
-      closeFillModal();
       saveHistory();
       let minX = Math.min(selectStartX, selectEndX);
       let maxX = Math.max(selectStartX, selectEndX);
@@ -390,31 +372,7 @@
           }
         }
       }
-      selectStartX = -1;
-      render();
-    }
-
-    let pendingTextPos = null;
-    function openTextModal(pos) {
-      pendingTextPos = pos;
-      document.getElementById('txt-input').value = '';
-      document.getElementById('text-modal').style.display = 'flex';
-      setTimeout(() => document.getElementById('txt-input').focus(), 100);
-    }
-    function closeTextModal() {
-      document.getElementById('text-modal').style.display = 'none';
-      pendingTextPos = null;
-    }
-    function addTextItem() {
-      let str = document.getElementById('txt-input').value.trim();
-      if (str && pendingTextPos) {
-        if (canPlace(pendingTextPos.gx, pendingTextPos.gy, 1, 1, 'text', null)) {
-          saveHistory();
-          gridData.push({ id: Date.now(), type: 'text', x: pendingTextPos.gx, y: pendingTextPos.gy, w: 1, h: 1, text: str, color: '#333', hidden: false });
-          render();
-        }
-      }
-      closeTextModal();
+      closeFillModal(); // この中で selectStartX = -1 され、render が呼ばれる
     }
 
     function findItemAt(gx, gy) {
@@ -430,7 +388,6 @@
       }
       return -1;
     }
-
     
     let allGridData = [[], [], []];
     let allHistory = [[], [], []];
@@ -440,15 +397,12 @@
     let scale = 1, panX = 20, panY = 20, interacted = false;
     let pointers = [], initialPinchDist = 0, initialScale = 1;
     let isDragging = false, ghostX = -1, ghostY = -1;
-
     
     function init() {
       panX = 20; panY = 20; 
-      // Calculate initial scale to fit width
       const f = fields[currentFieldIndex];
       const mapCols = f.matrix ? f.matrix[0].length : f.w + 6;
       const workspaceWidth = wrapper.parentElement.clientWidth;
-      // Fit to width with some padding, min scale 0.3, max 1.0
       scale = Math.min(1, Math.max(0.3, (workspaceWidth - 40) / (mapCols * TILE_SIZE)));
       
       resizeRulers();
@@ -456,7 +410,6 @@
       updateUndoButton();
       render();
     }
-
 
     function resizeRulers() {
       const rtDiv = document.getElementById('ruler-top');
@@ -468,26 +421,16 @@
     }
     window.addEventListener('resize', () => { resizeRulers(); renderRulers(); });
 
-    
     function changeField(idx) {
-      // Only target buttons within the field size section
-      const fieldButtons = document.querySelectorAll('.section-title:nth-of-type(2) + .btn-group .btn');
+      const fieldButtons = document.querySelectorAll('.field-selector-row .btn-group .btn');
       if (fieldButtons.length > 0) {
         fieldButtons.forEach((b, i) => b.classList.toggle('active', i === idx));
-      } else {
-        // Fallback if structure changes: find the buttons containing '個目'
-        document.querySelectorAll('.btn-group .btn').forEach(b => {
-          if (b.innerText.includes('個目')) {
-            b.classList.toggle('active', parseInt(b.innerText) - 1 === idx);
-          }
-        });
       }
       currentFieldIndex = idx;
       gridData = allGridData[idx];
       history = allHistory[idx];
       updateUndoButton();
       
-      // ズーム倍率をリセット
       panX = 20; panY = 20;
       const f = fields[currentFieldIndex];
       const mapCols = f.matrix ? f.matrix[0].length : f.w + 6;
@@ -578,74 +521,6 @@
 
     function updateTransform() {
       wrapper.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
-      
-      // テキストアイテム（吹き出し）の描画
-      gridData.forEach(d => {
-        if (d.type === 'text') {
-          let px = (d.x + 0.5) * TILE_SIZE;
-          let py = (d.y + 0.5) * TILE_SIZE;
-          
-          if (d.hidden) {
-             // アイコンを描画
-             ctx.fillStyle = '#fff';
-             ctx.beginPath();
-             ctx.arc(px, py, 10, 0, Math.PI * 2);
-             ctx.fill();
-             ctx.strokeStyle = '#607d8b';
-             ctx.lineWidth = 1;
-             ctx.stroke();
-             ctx.fillStyle = '#607d8b';
-             ctx.font = '12px sans-serif';
-             ctx.fillText('💬', px, py);
-          } else {
-             // 吹き出し描画
-             ctx.font = 'bold 12px sans-serif';
-             let lines = d.text.split('\n');
-             let maxW = 0;
-             lines.forEach(l => {
-                let w = ctx.measureText(l).width;
-                if(w > maxW) maxW = w;
-             });
-             let padX = 8, padY = 6;
-             let bw = maxW + padX * 2;
-             let bh = lines.length * 14 + padY * 2;
-             
-             let tipY = py - 10;
-             let ry = tipY - 8 - bh;
-             let rx = px - bw / 2;
-             
-             ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-             ctx.strokeStyle = '#607d8b';
-             ctx.lineWidth = 1.5;
-             
-             ctx.beginPath();
-             if (ctx.roundRect) {
-                 ctx.roundRect(rx, ry, bw, bh, 6);
-             } else {
-                 ctx.rect(rx, ry, bw, bh); // フォールバック
-             }
-             ctx.fill();
-             ctx.stroke();
-             
-             ctx.beginPath();
-             ctx.moveTo(px - 6, tipY - 8);
-             ctx.lineTo(px + 6, tipY - 8);
-             ctx.lineTo(px, tipY);
-             ctx.closePath();
-             ctx.fill();
-             ctx.stroke();
-             
-             ctx.fillStyle = '#333';
-             ctx.textBaseline = 'middle';
-             lines.forEach((l, i) => {
-                ctx.fillText(l, px, ry + padY + 7 + i * 14);
-             });
-             
-             ctx.fillStyle = 'rgba(96, 125, 139, 0.2)';
-             ctx.fillRect(d.x * TILE_SIZE, d.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-          }
-        }
-      });
       renderRulers();
     }
 
@@ -655,9 +530,6 @@
         toast.style.opacity = '0';
       }
     }
-
-    
-    
     
     // --- Settings Modal ---
     function openSettings() { document.getElementById('settings-modal').style.display = 'flex'; }
@@ -668,15 +540,12 @@
       statsEnabled = document.getElementById('show-stats-toggle').checked;
       document.getElementById('stats-panel').style.display = statsEnabled ? 'block' : 'none';
       saveConfig();
-      setTimeout(resizeRulers, 50); // Resize event due to layout flex change
+      setTimeout(resizeRulers, 50); 
     }
-    
-    
     
     function saveConfig() {
       localStorage.setItem('farmSimConfig', JSON.stringify({ showStats: statsEnabled }));
     }
-    
     function loadConfig() {
       try {
         const conf = localStorage.getItem('farmSimConfig');
@@ -691,7 +560,6 @@
       if(p) p.style.display = statsEnabled ? 'block' : 'none';
     }
     
-    // Close modal if clicked outside
     window.addEventListener('click', e => {
       const modal = document.getElementById('settings-modal');
       if (e.target === modal) closeSettings();
@@ -767,7 +635,6 @@
         }
       }
     }
-
     
     function drawItemComplex(gx, gy, type, w, h, color, label, matrix) {
       if (matrix) {
@@ -804,19 +671,29 @@
       } else {
         let px = gx * TILE_SIZE, py = gy * TILE_SIZE;
         ctx.fillStyle = color;
-        ctx.fillRect(px, py, w * TILE_SIZE, h * TILE_SIZE);
-        ctx.strokeStyle = '#fff';
-        ctx.strokeRect(px, py, w * TILE_SIZE, h * TILE_SIZE);
+        
+        // --- 修正: カスタムアイテムの場合はグリッド線にかぶらないよう少し小さく描画(-1px) ---
+        if (type === 'custom') {
+            ctx.fillRect(px, py, w * TILE_SIZE - 1, h * TILE_SIZE - 1);
+        } else {
+            ctx.fillRect(px, py, w * TILE_SIZE, h * TILE_SIZE);
+            ctx.strokeStyle = '#fff';
+            ctx.strokeRect(px, py, w * TILE_SIZE, h * TILE_SIZE);
+        }
+        
         if(type === 'building') {
             ctx.fillStyle = typeof hatchCanvas !== 'undefined' ? ctx.createPattern(hatchCanvas, 'repeat') : 'rgba(0,0,0,0.2)';
             ctx.fillRect(px, py, w * TILE_SIZE, h * TILE_SIZE);
         }
-        ctx.fillStyle = (color === '#ffeb3b') ? '#333' : 'white';
+        ctx.fillStyle = (color === '#ffeb3b' || color === '#ffffff') ? '#333' : 'white';
         ctx.font = 'bold 12px sans-serif';
-        ctx.fillText(label, px + (w * TILE_SIZE) / 2, py + (h * TILE_SIZE) / 2);
+        if (type !== 'custom') {
+            ctx.fillText(label, px + (w * TILE_SIZE) / 2, py + (h * TILE_SIZE) / 2);
+        }
       }
     }
-function render() {
+
+    function render() {
       const f = fields[currentFieldIndex];
       const map = getMapSize();
       canvas.width = map.cols * TILE_SIZE;
@@ -861,11 +738,8 @@ function render() {
         }
       }
 
-      
-      
       gridData.forEach(d => applyHighlight(d.x, d.y, d.type, d.range, d.w, d.h));
 
-      // --- NEW: Ghost Preview Highlights ---
       if (isDragging && ghostX >= 0) {
         if (movingItemOriginal) {
           applyHighlight(ghostX, ghostY, movingItemOriginal.type, movingItemOriginal.range, movingItemOriginal.w, movingItemOriginal.h);
@@ -881,8 +755,6 @@ function render() {
         }
       }
 
-      // ハイライトの描画
-
       for(let y = 0; y < map.rows; y++) {
         for(let x = 0; x < map.cols; x++) {
           if (highlightMap[y][x]) {
@@ -892,8 +764,6 @@ function render() {
         }
       }
 
-
-      // スプリンクラー範囲の描画
       function drawSprinklerHighlight(d_x, d_y, r) {
         ctx.fillStyle = 'rgba(33, 150, 243, 0.4)';
         for(let y = d_y - r; y <= d_y + r; y++) {
@@ -907,25 +777,18 @@ function render() {
       }
 
       gridData.forEach(d => {
-        if (d.type === 'sprinkler') {
-            drawSprinklerHighlight(d.x, d.y, d.range);
-        }
+        if (d.type === 'sprinkler') drawSprinklerHighlight(d.x, d.y, d.range);
       });
       
-      // --- NEW: Ghost Sprinkler Preview ---
       if (isDragging && ghostX >= 0) {
         if (movingItemOriginal && movingItemOriginal.type === 'sprinkler') {
             drawSprinklerHighlight(ghostX, ghostY, movingItemOriginal.range);
         } else if (!movingItemOriginal && !isPaintable(currentItem) && currentItem !== 'mov' && currentItem !== 'sel' && currentItem !== 'txt') {
             let itm = getItem(currentItem);
-            if (itm && itm.type === 'sprinkler') {
-                drawSprinklerHighlight(ghostX, ghostY, itm.range);
-            }
+            if (itm && itm.type === 'sprinkler') drawSprinklerHighlight(ghostX, ghostY, itm.range);
         }
       }
 
-
-      // カスタムアイテムのグループ化
       let customGroups = [];
       let visited = new Set();
       let customItemsData = gridData.filter(d => d.type === 'custom');
@@ -950,18 +813,12 @@ function render() {
          customGroups.push(group);
       });
 
-      // アイテム本体の描画
       gridData.forEach(d => {
-        if (d.type === 'text') {
-           // テキストは後で一番上に描画する
-        } else if (d.type === 'custom') {
-           drawItemComplex(d.x, d.y, d.type, d.w, d.h, d.color, '', d.matrix);
-        } else {
-           drawItemComplex(d.x, d.y, d.type, d.w, d.h, d.color, d.label, d.matrix);
+        if (d.type !== 'text') {
+           drawItemComplex(d.x, d.y, d.type, d.w, d.h, d.color, d.type === 'custom' ? '' : d.label, d.matrix);
         }
       });
       
-      // カスタムグループの中央にラベルを描画
       customGroups.forEach(group => {
          if (group.length === 0) return;
          let label = group[0].label;
@@ -976,7 +833,6 @@ function render() {
          ctx.font = 'bold 12px sans-serif';
          ctx.fillText(label, cx, cy);
       });
-
 
       if(isDragging && ghostX >= 0 && !isPaintable(currentItem) && currentItem !== 'mov' && currentItem !== 'sel' && currentItem !== 'txt' && !movingItemOriginal) {
         let itm = getItem(currentItem);
@@ -1019,34 +875,21 @@ function render() {
         ctx.setLineDash([]);
       }
       
-      
-      // テキストアイテム（吹き出し）の描画
       gridData.forEach(d => {
         if (d.type === 'text') {
           let px = (d.x + 0.5) * TILE_SIZE;
           let py = (d.y + 0.5) * TILE_SIZE;
           
           if (d.hidden) {
-             // アイコンを描画
              ctx.fillStyle = '#fff';
-             ctx.beginPath();
-             ctx.arc(px, py, 10, 0, Math.PI * 2);
-             ctx.fill();
-             ctx.strokeStyle = '#607d8b';
-             ctx.lineWidth = 1;
-             ctx.stroke();
-             ctx.fillStyle = '#607d8b';
-             ctx.font = '12px sans-serif';
-             ctx.fillText('💬', px, py);
+             ctx.beginPath(); ctx.arc(px, py, 10, 0, Math.PI * 2); ctx.fill();
+             ctx.strokeStyle = '#607d8b'; ctx.lineWidth = 1; ctx.stroke();
+             ctx.fillStyle = '#607d8b'; ctx.font = '12px sans-serif'; ctx.fillText('💬', px, py);
           } else {
-             // 吹き出し描画
              ctx.font = 'bold 12px sans-serif';
              let lines = d.text.split('\n');
              let maxW = 0;
-             lines.forEach(l => {
-                let w = ctx.measureText(l).width;
-                if(w > maxW) maxW = w;
-             });
+             lines.forEach(l => { let w = ctx.measureText(l).width; if(w > maxW) maxW = w; });
              let padX = 8, padY = 6;
              let bw = maxW + padX * 2;
              let bh = lines.length * 14 + padY * 2;
@@ -1060,27 +903,17 @@ function render() {
              ctx.lineWidth = 1.5;
              
              ctx.beginPath();
-             if (ctx.roundRect) {
-                 ctx.roundRect(rx, ry, bw, bh, 6);
-             } else {
-                 ctx.rect(rx, ry, bw, bh); // フォールバック
-             }
-             ctx.fill();
-             ctx.stroke();
+             if (ctx.roundRect) ctx.roundRect(rx, ry, bw, bh, 6);
+             else ctx.rect(rx, ry, bw, bh); 
+             ctx.fill(); ctx.stroke();
              
              ctx.beginPath();
-             ctx.moveTo(px - 6, tipY - 8);
-             ctx.lineTo(px + 6, tipY - 8);
-             ctx.lineTo(px, tipY);
-             ctx.closePath();
-             ctx.fill();
-             ctx.stroke();
+             ctx.moveTo(px - 6, tipY - 8); ctx.lineTo(px + 6, tipY - 8); ctx.lineTo(px, tipY);
+             ctx.closePath(); ctx.fill(); ctx.stroke();
              
              ctx.fillStyle = '#333';
              ctx.textBaseline = 'middle';
-             lines.forEach((l, i) => {
-                ctx.fillText(l, px, ry + padY + 7 + i * 14);
-             });
+             lines.forEach((l, i) => { ctx.fillText(l, px, ry + padY + 7 + i * 14); });
              
              ctx.fillStyle = 'rgba(96, 125, 139, 0.2)';
              ctx.fillRect(d.x * TILE_SIZE, d.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
@@ -1102,14 +935,14 @@ function render() {
           if (matrix && matrix[iy - y][ix - x] === 0) continue; 
           
           let state = getCellState(ix, iy);
-          if (state === 2) return false; // 不可エリアには置けない
+          if (state === 2) return false; // 不可エリア
 
           if (type === 'tree' && state !== 1) return false;
           if (type === 'paddy' && state !== 1) return false;
         }
       }
 
-      // 2. 水田の土手（周囲1マス）
+      // 2. 水田の土手（周囲1マス）がマップ外に出ないか
       if (type === 'paddy') {
         for(let iy = y - 1; iy <= y + h; iy++) {
           for(let ix = x - 1; ix <= x + w; ix++) {
@@ -1123,27 +956,45 @@ function render() {
       for(let item of gridData) {
         for(let iy = y; iy < y + h; iy++) {
           for(let ix = x; ix < x + w; ix++) {
-            let val = matrix ? matrix[iy - y][ix - x] : 1;
+            let val = matrix ? matrix[iy - y][ix - x] : 1; // 自分が配置するマスの属性(1:本体, 2:周囲など)
             if (val === 0) continue; 
+            
             for(let ey = item.y; ey < item.y + item.h; ey++) {
               for(let ex = item.x; ex < item.x + item.w; ex++) {
-                let evalVal = item.matrix ? item.matrix[ey - item.y][ex - item.x] : 1;
+                let evalVal = item.matrix ? item.matrix[ey - item.y][ex - item.x] : 1; // 既存アイテムの属性
                 if (evalVal === 0) continue; 
                 
-                if (ix === ex && iy === ey) return false;
-                
-                if (type === 'tree' && item.type === 'tree') {
-                  if (Math.abs(ix - ex) <= 2 && Math.abs(iy - ey) <= 2) return false;
-                } else if (type === 'tree' && item.type === 'building') {
-                  if (Math.abs(ix - ex) <= 1 && Math.abs(iy - ey) <= 1) return false;
-                } else if (type === 'building' && item.type === 'tree') {
-                  if (Math.abs(ix - ex) <= 1 && Math.abs(iy - ey) <= 1) return false;
+                // 座標が重なっている場合
+                if (ix === ex && iy === ey) {
+                    // --- 修正: 果樹(本体1)と建物(周囲2)の直接の重なりは許可する ---
+                    if (type === 'tree' && item.type === 'building' && evalVal === 2) continue;
+                    if (type === 'building' && val === 2 && item.type === 'tree') continue;
+                    return false; // それ以外の重なりはNG
                 }
-
-                if (type === 'tree' && item.type === 'paddy') {
-                  if (Math.abs(ix - ex) <= 1 && Math.abs(iy - ey) <= 1) return false;
-                } else if (type === 'paddy' && item.type === 'tree') {
-                  if (Math.abs(ix - ex) <= 1 && Math.abs(iy - ey) <= 1) return false;
+                
+                // 隣接制限のチェック
+                if (type === 'tree' || item.type === 'tree') {
+                    // 果樹同士は2マス以内に本体があってはならない
+                    if (type === 'tree' && item.type === 'tree') {
+                        if (Math.abs(ix - ex) <= 2 && Math.abs(iy - ey) <= 2) return false;
+                    } 
+                    // 自分が果樹、相手が建物のとき (周囲1マス隣接NG)
+                    else if (type === 'tree' && item.type === 'building') {
+                        if (Math.abs(ix - ex) <= 1 && Math.abs(iy - ey) <= 1) {
+                            // --- 修正: 建物の周囲(2)なら隣接してもOK ---
+                            if (evalVal !== 2) return false;
+                        }
+                    } 
+                    // 自分が建物、相手が果樹のとき
+                    else if (type === 'building' && item.type === 'tree') {
+                        if (Math.abs(ix - ex) <= 1 && Math.abs(iy - ey) <= 1) {
+                            if (val !== 2) return false;
+                        }
+                    } 
+                    // 果樹と水田の隣接制限
+                    else if (item.type === 'paddy' || type === 'paddy') {
+                        if (Math.abs(ix - ex) <= 1 && Math.abs(iy - ey) <= 1) return false;
+                    }
                 }
               }
             }
@@ -1160,7 +1011,6 @@ function render() {
       return { gx: Math.floor(x / TILE_SIZE), gy: Math.floor(y / TILE_SIZE) };
     }
 
-    
     function applyPaint(pos) {
       if (currentItem === 'ers') {
         let idx = findItemAt(pos.gx, pos.gy);
@@ -1178,7 +1028,6 @@ function render() {
       }
     }
 
-    
     let pendingTap = null;
     let touchStartClient = null;
 
@@ -1190,7 +1039,6 @@ function render() {
         pendingTap = pos;
         isDragging = false;
         
-        // プレビュー表示用
         if (!isPaintable(currentItem) && currentItem !== 'mov' && currentItem !== 'sel' && currentItem !== 'txt') {
            let itm = getItem(currentItem);
            if (itm) {
@@ -1206,10 +1054,7 @@ function render() {
       } else if (pointers.length === 2) {
         pendingTap = null;
         touchStartClient = null;
-        if (movingItemOriginal) {
-           gridData.push(movingItemOriginal);
-           movingItemOriginal = null;
-        }
+        if (movingItemOriginal) { gridData.push(movingItemOriginal); movingItemOriginal = null; }
         isDragging = false; ghostX = -1; ghostY = -1; selectStartX = -1; render();
         hideToast();
         let p1 = pointers[0], p2 = pointers[1];
@@ -1331,11 +1176,10 @@ function render() {
             if (textItemIndex !== -1 && currentItem !== 'ers' && currentItem !== 'mov' && currentItem !== 'sel') {
                 gridData[textItemIndex].hidden = !gridData[textItemIndex].hidden;
                 render();
-                
             } else if (currentItem === 'txt') {
+                // --- 修正: テキスト入力モーダルを呼び出す ---
                 openTextModal(pos);
             } else if (isPaintable(currentItem)) {
-
                 saveHistory();
                 applyPaint(pos);
             } else if (currentItem !== 'mov' && currentItem !== 'sel') {
@@ -1369,6 +1213,9 @@ function render() {
                 }
                 movingItemOriginal = null;
             } else if (currentItem === 'sel' && selectStartX >= 0) {
+                // --- 修正: 最終的なドラッグ終了位置を確定させてからモーダルを開く ---
+                selectEndX = pos.gx;
+                selectEndY = pos.gy;
                 openFillModal();
             } else if (!isPaintable(currentItem) && currentItem !== 'txt' && ghostX >= 0) {
                 let itm = getItem(currentItem);
@@ -1395,7 +1242,8 @@ function render() {
         touchStartClient = null;
         ghostX = -1; 
         ghostY = -1;
-        selectStartX = -1;
+        // --- 修正: ここでの selectStartX = -1; のリセットを削除（ズレの原因） ---
+        
         if (movingItemOriginal) {
            gridData.push(movingItemOriginal);
            movingItemOriginal = null;
@@ -1412,24 +1260,34 @@ function render() {
       render();
     });
 
-
-
-    
-    
-    
-
-
-    
-
-    
+    // --- テキスト入力用モーダルの処理 ---
+    let pendingTextPos = null;
+    function openTextModal(pos) {
+      pendingTextPos = pos;
+      document.getElementById('txt-input').value = '';
+      document.getElementById('text-modal').style.display = 'flex';
+      setTimeout(() => document.getElementById('txt-input').focus(), 100);
+    }
+    function closeTextModal() {
+      document.getElementById('text-modal').style.display = 'none';
+      pendingTextPos = null;
+    }
+    function addTextItem() {
+      let str = document.getElementById('txt-input').value.trim();
+      if (str && pendingTextPos) {
+        if (canPlace(pendingTextPos.gx, pendingTextPos.gy, 1, 1, 'text', null)) {
+          saveHistory();
+          gridData.push({ id: Date.now(), type: 'text', x: pendingTextPos.gx, y: pendingTextPos.gy, w: 1, h: 1, text: str, color: '#333', hidden: false });
+          render();
+        }
+      }
+      closeTextModal();
+    }
 
     loadConfig();
     loadFromLocal();
 
     // --- Local Storage Auto Save ---
-    
-    
-    
     function saveToLocal() {
       try {
         localStorage.setItem('farmSimData', JSON.stringify({
@@ -1461,13 +1319,9 @@ function render() {
       }
     }
 
-    // Override saveHistory to trigger auto-save and update stats
     const originalSaveHistory = saveHistory;
-    saveHistory = function() {
-      originalSaveHistory();
-    };
+    saveHistory = function() { originalSaveHistory(); };
 
-    // Override render to trigger auto-save and update stats AFTER drawing
     const originalRender = render;
     render = function() {
       originalRender();
@@ -1492,7 +1346,6 @@ function render() {
       let targetData = (statsScope === 'current') ? gridData : allGridData.flat();
       targetData.forEach(item => {
         counts[item.type] = (counts[item.type] || 0) + 1;
-        // Group buildings by specific item name
         let key = item.label;
         if(item.type === 'sprinkler') key = item.label + 'スプ';
         counts[key] = (counts[key] || 0) + 1;
@@ -1516,12 +1369,6 @@ function render() {
         container.innerHTML = '<span style="color:#777;">配置されたアイテムはありません。</span>';
       }
     }
-
-    // --- Image Export ---
-    
-
-  
-    
 
     function exportData() {
       closeSettings();
@@ -1566,10 +1413,7 @@ function render() {
       e.target.value = ''; 
     }
 
-    
-    
     init();
-
   </script>
 
   <div id="settings-modal" class="modal">
@@ -1588,7 +1432,6 @@ function render() {
       </div>
     </div>
   </div>
-
 
   <div id="add-custom-modal" class="modal">
     <div class="modal-content">
@@ -1619,8 +1462,8 @@ function render() {
       </div>
     </div>
   </div>
-  
-    <!-- テキスト入力用モーダル -->
+
+  <!-- 新規: テキスト入力用モーダル -->
   <div id="text-modal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
@@ -1631,5 +1474,6 @@ function render() {
       <button class="btn" style="width: 100%; background: #607d8b; color: white; margin-top: 12px;" onclick="addTextItem()">配置する</button>
     </div>
   </div>
+
 </body>
 </html>
