@@ -104,7 +104,7 @@
   <header>
     <div class="title-group">
       <h1>【非公式】畑シミュレーター</h1>
-      <span class="version">v26.10.26.2319</span>
+      <span class="version">v26.10.26.2347</span>
     </div>
     <button class="settings-btn" onclick="openSettings()">⚙️ 設定</button>
   </header>
@@ -686,13 +686,21 @@
             if (matrix[r][c] !== 0) {
               let px = (gx + c) * TILE_SIZE;
               let py = (gy + r) * TILE_SIZE;
-              ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
-              ctx.strokeStyle = '#fff';
-              ctx.strokeRect(px, py, TILE_SIZE, TILE_SIZE);
-              if (matrix[r][c] === 3) {
+              if (matrix[r][c] === 2) {
                  ctx.fillStyle = typeof hatchCanvas !== 'undefined' ? ctx.createPattern(hatchCanvas, 'repeat') : 'rgba(0,0,0,0.2)';
                  ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                 ctx.strokeStyle = 'rgba(200, 200, 200, 0.5)';
+                 ctx.strokeRect(px, py, TILE_SIZE, TILE_SIZE);
+              } else if (matrix[r][c] === 3) {
+                 ctx.fillStyle = '#ffeb3b';
+                 ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                 ctx.strokeStyle = '#fff';
+                 ctx.strokeRect(px, py, TILE_SIZE, TILE_SIZE);
+              } else {
                  ctx.fillStyle = color;
+                 ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                 ctx.strokeStyle = '#fff';
+                 ctx.strokeRect(px, py, TILE_SIZE, TILE_SIZE);
               }
             }
           }
@@ -717,8 +725,7 @@
         ctx.fillText(label, px + (w * TILE_SIZE) / 2, py + (h * TILE_SIZE) / 2);
       }
     }
-
-    function render() {
+function render() {
       const f = fields[currentFieldIndex];
       const map = getMapSize();
       canvas.width = map.cols * TILE_SIZE;
@@ -764,9 +771,27 @@
       }
 
       
+      
       gridData.forEach(d => applyHighlight(d.x, d.y, d.type, d.range, d.w, d.h));
 
+      // --- NEW: Ghost Preview Highlights ---
+      if (isDragging && ghostX >= 0) {
+        if (movingItemOriginal) {
+          applyHighlight(ghostX, ghostY, movingItemOriginal.type, movingItemOriginal.range, movingItemOriginal.w, movingItemOriginal.h);
+        } else if (!isPaintable(currentItem) && currentItem !== 'mov' && currentItem !== 'sel' && currentItem !== 'txt') {
+          let itm = getItem(currentItem);
+          if (itm) {
+            let isRot = rotState[currentItem];
+            let mtx = itm.matrixNorm ? (isRot ? itm.matrixRot : itm.matrixNorm) : null;
+            let gw = mtx ? mtx[0].length : (itm.rotatable && isRot ? itm.h : itm.w);
+            let gh = mtx ? mtx.length : (itm.rotatable && isRot ? itm.w : itm.h);
+            applyHighlight(ghostX, ghostY, itm.type, itm.range, gw, gh);
+          }
+        }
+      }
+
       // ハイライトの描画
+
       for(let y = 0; y < map.rows; y++) {
         for(let x = 0; x < map.cols; x++) {
           if (highlightMap[y][x]) {
@@ -776,21 +801,38 @@
         }
       }
 
+
       // スプリンクラー範囲の描画
+      function drawSprinklerHighlight(d_x, d_y, r) {
+        ctx.fillStyle = 'rgba(33, 150, 243, 0.4)';
+        for(let y = d_y - r; y <= d_y + r; y++) {
+          for(let x = d_x - r; x <= d_x + r; x++) {
+            if(x >= 0 && x < map.cols && y >= 0 && y < map.rows) {
+              if(x === d_x && y === d_y) continue;
+              ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            }
+          }
+        }
+      }
+
       gridData.forEach(d => {
         if (d.type === 'sprinkler') {
-            ctx.fillStyle = 'rgba(33, 150, 243, 0.4)';
-            let r = d.range;
-            for(let y = d.y - r; y <= d.y + r; y++) {
-              for(let x = d.x - r; x <= d.x + r; x++) {
-                if(x >= 0 && x < map.cols && y >= 0 && y < map.rows) {
-                  if(x === d.x && y === d.y) continue;
-                  ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-                }
-              }
-            }
+            drawSprinklerHighlight(d.x, d.y, d.range);
         }
       });
+      
+      // --- NEW: Ghost Sprinkler Preview ---
+      if (isDragging && ghostX >= 0) {
+        if (movingItemOriginal && movingItemOriginal.type === 'sprinkler') {
+            drawSprinklerHighlight(ghostX, ghostY, movingItemOriginal.range);
+        } else if (!movingItemOriginal && !isPaintable(currentItem) && currentItem !== 'mov' && currentItem !== 'sel' && currentItem !== 'txt') {
+            let itm = getItem(currentItem);
+            if (itm && itm.type === 'sprinkler') {
+                drawSprinklerHighlight(ghostX, ghostY, itm.range);
+            }
+        }
+      }
+
 
       // アイテム本体の描画
       gridData.forEach(d => {
@@ -980,6 +1022,10 @@
           }
         }
       } else if (pointers.length === 2) {
+        if (movingItemOriginal) {
+           gridData.push(movingItemOriginal);
+           movingItemOriginal = null;
+        }
         isDragging = false; ghostX = -1; ghostY = -1; selectStartX = -1; render();
         hideToast();
         let p1 = pointers[0], p2 = pointers[1];
@@ -1062,39 +1108,47 @@
          this.lastCx = null; this.lastCy = null; this.lastDist = null;
       }
 
-      if(pointers.length === 0 && isDragging) {
-        isDragging = false;
-        
-        if (currentItem === 'mov' && movingItemOriginal) {
-          if (canPlace(ghostX, ghostY, movingItemOriginal.w, movingItemOriginal.h, movingItemOriginal.type, movingItemOriginal.matrix)) {
-            movingItemOriginal.x = ghostX;
-            movingItemOriginal.y = ghostY;
-            gridData.push(movingItemOriginal);
-          } else {
-            gridData.push(movingItemOriginal);
-          }
-          movingItemOriginal = null;
-          ghostX = -1; ghostY = -1;
-          render();
-        } else if (currentItem === 'sel' && selectStartX >= 0) {
-          openFillModal();
-        } else if (!isPaintable(currentItem) && currentItem !== 'txt' && ghostX >= 0) {
-          let itm = getItem(currentItem);
-          if (itm) {
-            let isRot = rotState[currentItem];
-            let mtx = itm.matrixNorm ? (isRot ? itm.matrixRot : itm.matrixNorm) : null;
-            let w = mtx ? mtx[0].length : (itm.rotatable && isRot ? itm.h : itm.w);
-            let h = mtx ? mtx.length : (itm.rotatable && isRot ? itm.w : itm.h);
-            if(canPlace(ghostX, ghostY, w, h, itm.type, mtx)) {
-              saveHistory();
-              gridData.push({
-                id: Date.now(), type: itm.type,
-                x: ghostX, y: ghostY, w: w, h: h,
-                range: itm.range, color: itm.color, label: itm.label,
-                matrix: mtx
-              });
+      if(pointers.length === 0) {
+        if (isDragging) {
+          isDragging = false;
+          
+          if (currentItem === 'mov' && movingItemOriginal) {
+            if (canPlace(ghostX, ghostY, movingItemOriginal.w, movingItemOriginal.h, movingItemOriginal.type, movingItemOriginal.matrix)) {
+              movingItemOriginal.x = ghostX;
+              movingItemOriginal.y = ghostY;
+              gridData.push(movingItemOriginal);
+            } else {
+              gridData.push(movingItemOriginal);
             }
+            movingItemOriginal = null;
+            ghostX = -1; ghostY = -1;
+            render();
+          } else if (currentItem === 'sel' && selectStartX >= 0) {
+            openFillModal();
+          } else if (!isPaintable(currentItem) && currentItem !== 'txt' && ghostX >= 0) {
+            let itm = getItem(currentItem);
+            if (itm) {
+              let isRot = rotState[currentItem];
+              let mtx = itm.matrixNorm ? (isRot ? itm.matrixRot : itm.matrixNorm) : null;
+              let w = mtx ? mtx[0].length : (itm.rotatable && isRot ? itm.h : itm.w);
+              let h = mtx ? mtx.length : (itm.rotatable && isRot ? itm.w : itm.h);
+              if(canPlace(ghostX, ghostY, w, h, itm.type, mtx)) {
+                saveHistory();
+                gridData.push({
+                  id: Date.now(), type: itm.type,
+                  x: ghostX, y: ghostY, w: w, h: h,
+                  range: itm.range, color: itm.color, label: itm.label,
+                  matrix: mtx
+                });
+              }
+            }
+            ghostX = -1; ghostY = -1;
+            render();
           }
+        } else if (movingItemOriginal) {
+          // 2本指操作などでドラッグがキャンセルされたが、移動中アイテムが宙に浮いている場合のフェイルセーフ
+          gridData.push(movingItemOriginal);
+          movingItemOriginal = null;
           ghostX = -1; ghostY = -1;
           render();
         }
