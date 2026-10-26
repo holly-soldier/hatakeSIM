@@ -1,4 +1,4 @@
-const CACHE_NAME = 'honofarm-v26.10.27.0044a';
+const CACHE_NAME = 'honofarm-v26.10.27.0044b';
 const urlsToCache = [
   './',
   './index.html',
