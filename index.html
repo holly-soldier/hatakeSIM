@@ -104,7 +104,7 @@
   <header>
     <div class="title-group">
       <h1>【非公式】畑シミュレーター</h1>
-      <span class="version">v26.10.26.2347</span>
+      <span class="version">v26.10.27.0044</span>
     </div>
     <button class="settings-btn" onclick="openSettings()">⚙️ 設定</button>
   </header>
@@ -318,7 +318,7 @@
       document.getElementById('add-custom-modal').style.display = 'none';
     }
     function addCustomItem() {
-      let name = document.getElementById('cst-name').value.trim() || '色';
+      let name = document.getElementById('cst-name').value.trim();
       let color = document.getElementById('cst-color').value;
       let id = 'cst_' + Date.now();
       customItems[id] = { type: 'custom', w: 1, h: 1, range: 0, color: color, label: name };
@@ -555,6 +555,74 @@
 
     function updateTransform() {
       wrapper.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+      
+      // テキストアイテム（吹き出し）の描画
+      gridData.forEach(d => {
+        if (d.type === 'text') {
+          let px = (d.x + 0.5) * TILE_SIZE;
+          let py = (d.y + 0.5) * TILE_SIZE;
+          
+          if (d.hidden) {
+             // アイコンを描画
+             ctx.fillStyle = '#fff';
+             ctx.beginPath();
+             ctx.arc(px, py, 10, 0, Math.PI * 2);
+             ctx.fill();
+             ctx.strokeStyle = '#607d8b';
+             ctx.lineWidth = 1;
+             ctx.stroke();
+             ctx.fillStyle = '#607d8b';
+             ctx.font = '12px sans-serif';
+             ctx.fillText('💬', px, py);
+          } else {
+             // 吹き出し描画
+             ctx.font = 'bold 12px sans-serif';
+             let lines = d.text.split('\n');
+             let maxW = 0;
+             lines.forEach(l => {
+                let w = ctx.measureText(l).width;
+                if(w > maxW) maxW = w;
+             });
+             let padX = 8, padY = 6;
+             let bw = maxW + padX * 2;
+             let bh = lines.length * 14 + padY * 2;
+             
+             let tipY = py - 10;
+             let ry = tipY - 8 - bh;
+             let rx = px - bw / 2;
+             
+             ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+             ctx.strokeStyle = '#607d8b';
+             ctx.lineWidth = 1.5;
+             
+             ctx.beginPath();
+             if (ctx.roundRect) {
+                 ctx.roundRect(rx, ry, bw, bh, 6);
+             } else {
+                 ctx.rect(rx, ry, bw, bh); // フォールバック
+             }
+             ctx.fill();
+             ctx.stroke();
+             
+             ctx.beginPath();
+             ctx.moveTo(px - 6, tipY - 8);
+             ctx.lineTo(px + 6, tipY - 8);
+             ctx.lineTo(px, tipY);
+             ctx.closePath();
+             ctx.fill();
+             ctx.stroke();
+             
+             ctx.fillStyle = '#333';
+             ctx.textBaseline = 'middle';
+             lines.forEach((l, i) => {
+                ctx.fillText(l, px, ry + padY + 7 + i * 14);
+             });
+             
+             ctx.fillStyle = 'rgba(96, 125, 139, 0.2)';
+             ctx.fillRect(d.x * TILE_SIZE, d.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+          }
+        }
+      });
       renderRulers();
     }
 
@@ -692,7 +760,7 @@
                  ctx.strokeStyle = 'rgba(200, 200, 200, 0.5)';
                  ctx.strokeRect(px, py, TILE_SIZE, TILE_SIZE);
               } else if (matrix[r][c] === 3) {
-                 ctx.fillStyle = '#ffeb3b';
+                 ctx.fillStyle = '#c8e6c9';
                  ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
                  ctx.strokeStyle = '#fff';
                  ctx.strokeRect(px, py, TILE_SIZE, TILE_SIZE);
@@ -834,16 +902,58 @@ function render() {
       }
 
 
+      // カスタムアイテムのグループ化
+      let customGroups = [];
+      let visited = new Set();
+      let customItemsData = gridData.filter(d => d.type === 'custom');
+      
+      customItemsData.forEach(d => {
+         if(visited.has(d.id)) return;
+         let group = [];
+         let q = [d];
+         visited.add(d.id);
+         while(q.length > 0) {
+            let curr = q.shift();
+            group.push(curr);
+            let neighbors = customItemsData.filter(n => 
+               !visited.has(n.id) && n.label === curr.label && n.color === curr.color && 
+               ((Math.abs(n.x - curr.x) === 1 && n.y === curr.y) || (Math.abs(n.y - curr.y) === 1 && n.x === curr.x))
+            );
+            neighbors.forEach(n => {
+               visited.add(n.id);
+               q.push(n);
+            });
+         }
+         customGroups.push(group);
+      });
+
       // アイテム本体の描画
       gridData.forEach(d => {
         if (d.type === 'text') {
-          ctx.fillStyle = d.color;
-          ctx.font = 'bold 12px sans-serif';
-          ctx.fillText(d.text, (d.x + 0.5) * TILE_SIZE, (d.y + 0.5) * TILE_SIZE);
+           // テキストは後で一番上に描画する
+        } else if (d.type === 'custom') {
+           drawItemComplex(d.x, d.y, d.type, d.w, d.h, d.color, '', d.matrix);
         } else {
-          drawItemComplex(d.x, d.y, d.type, d.w, d.h, d.color, d.label, d.matrix);
+           drawItemComplex(d.x, d.y, d.type, d.w, d.h, d.color, d.label, d.matrix);
         }
       });
+      
+      // カスタムグループの中央にラベルを描画
+      customGroups.forEach(group => {
+         if (group.length === 0) return;
+         let label = group[0].label;
+         if (!label) return;
+         
+         let sumX = 0, sumY = 0;
+         group.forEach(d => { sumX += d.x; sumY += d.y; });
+         let cx = (sumX / group.length + 0.5) * TILE_SIZE;
+         let cy = (sumY / group.length + 0.5) * TILE_SIZE;
+         
+         ctx.fillStyle = (group[0].color === '#ffeb3b' || group[0].color === '#ffffff') ? '#333' : 'white';
+         ctx.font = 'bold 12px sans-serif';
+         ctx.fillText(label, cx, cy);
+      });
+
 
       if(isDragging && ghostX >= 0 && !isPaintable(currentItem) && currentItem !== 'mov' && currentItem !== 'sel' && currentItem !== 'txt' && !movingItemOriginal) {
         let itm = getItem(currentItem);
@@ -886,6 +996,74 @@ function render() {
         ctx.setLineDash([]);
       }
       
+      
+      // テキストアイテム（吹き出し）の描画
+      gridData.forEach(d => {
+        if (d.type === 'text') {
+          let px = (d.x + 0.5) * TILE_SIZE;
+          let py = (d.y + 0.5) * TILE_SIZE;
+          
+          if (d.hidden) {
+             // アイコンを描画
+             ctx.fillStyle = '#fff';
+             ctx.beginPath();
+             ctx.arc(px, py, 10, 0, Math.PI * 2);
+             ctx.fill();
+             ctx.strokeStyle = '#607d8b';
+             ctx.lineWidth = 1;
+             ctx.stroke();
+             ctx.fillStyle = '#607d8b';
+             ctx.font = '12px sans-serif';
+             ctx.fillText('💬', px, py);
+          } else {
+             // 吹き出し描画
+             ctx.font = 'bold 12px sans-serif';
+             let lines = d.text.split('\n');
+             let maxW = 0;
+             lines.forEach(l => {
+                let w = ctx.measureText(l).width;
+                if(w > maxW) maxW = w;
+             });
+             let padX = 8, padY = 6;
+             let bw = maxW + padX * 2;
+             let bh = lines.length * 14 + padY * 2;
+             
+             let tipY = py - 10;
+             let ry = tipY - 8 - bh;
+             let rx = px - bw / 2;
+             
+             ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+             ctx.strokeStyle = '#607d8b';
+             ctx.lineWidth = 1.5;
+             
+             ctx.beginPath();
+             if (ctx.roundRect) {
+                 ctx.roundRect(rx, ry, bw, bh, 6);
+             } else {
+                 ctx.rect(rx, ry, bw, bh); // フォールバック
+             }
+             ctx.fill();
+             ctx.stroke();
+             
+             ctx.beginPath();
+             ctx.moveTo(px - 6, tipY - 8);
+             ctx.lineTo(px + 6, tipY - 8);
+             ctx.lineTo(px, tipY);
+             ctx.closePath();
+             ctx.fill();
+             ctx.stroke();
+             
+             ctx.fillStyle = '#333';
+             ctx.textBaseline = 'middle';
+             lines.forEach((l, i) => {
+                ctx.fillText(l, px, ry + padY + 7 + i * 14);
+             });
+             
+             ctx.fillStyle = 'rgba(96, 125, 139, 0.2)';
+             ctx.fillRect(d.x * TILE_SIZE, d.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+          }
+        }
+      });
       renderRulers();
     }
 
@@ -977,51 +1155,34 @@ function render() {
       }
     }
 
+    
+    let pendingTap = null;
+    let touchStartClient = null;
+
     container.addEventListener('pointerdown', e => {
       pointers.push(e);
-      if(pointers.length === 1) {
-        isDragging = true;
+      if (pointers.length === 1) {
+        touchStartClient = { x: e.clientX, y: e.clientY };
         let pos = getGridPos(e.clientX, e.clientY);
+        pendingTap = pos;
+        isDragging = false;
         
-        if (currentItem === 'txt') {
-          let str = prompt("配置するテキストを入力してください:");
-          if (str) {
-            if (canPlace(pos.gx, pos.gy, 1, 1, 'text', null)) {
-              saveHistory();
-              gridData.push({ id: Date.now(), type: 'text', x: pos.gx, y: pos.gy, w: 1, h: 1, text: str, color: '#333' });
+        // プレビュー表示用
+        if (!isPaintable(currentItem) && currentItem !== 'mov' && currentItem !== 'sel' && currentItem !== 'txt') {
+           let itm = getItem(currentItem);
+           if (itm) {
+              let isRot = rotState[currentItem];
+              let mtx = itm.matrixNorm ? (isRot ? itm.matrixRot : itm.matrixNorm) : null;
+              let w = mtx ? mtx[0].length : (itm.rotatable && isRot ? itm.h : itm.w);
+              let h = mtx ? mtx.length : (itm.rotatable && isRot ? itm.w : itm.h);
+              ghostX = pos.gx - Math.floor(w/2);
+              ghostY = pos.gy - Math.floor(h/2);
               render();
-            }
-          }
-        } else if (currentItem === 'mov') {
-          let idx = findItemAt(pos.gx, pos.gy);
-          if (idx !== -1) {
-            saveHistory();
-            movingItemOriginal = gridData[idx];
-            gridData.splice(idx, 1);
-            ghostX = pos.gx - Math.floor(movingItemOriginal.w / 2);
-            ghostY = pos.gy - Math.floor(movingItemOriginal.h / 2);
-            render();
-          }
-        } else if (currentItem === 'sel') {
-          selectStartX = selectEndX = pos.gx;
-          selectStartY = selectEndY = pos.gy;
-          render();
-        } else if (isPaintable(currentItem)) {
-          saveHistory();
-          lastPaintPos = {x: pos.gx, y: pos.gy};
-          applyPaint(pos);
-        } else {
-          let itm = getItem(currentItem);
-          if (itm) {
-            let isRot = rotState[currentItem];
-            let mtx = itm.matrixNorm ? (isRot ? itm.matrixRot : itm.matrixNorm) : null;
-            let w = mtx ? mtx[0].length : (itm.rotatable && isRot ? itm.h : itm.w);
-            let h = mtx ? mtx.length : (itm.rotatable && isRot ? itm.w : itm.h);
-            ghostX = pos.gx - Math.floor(w/2);
-            ghostY = pos.gy - Math.floor(h/2);
-          }
+           }
         }
       } else if (pointers.length === 2) {
+        pendingTap = null;
+        touchStartClient = null;
         if (movingItemOriginal) {
            gridData.push(movingItemOriginal);
            movingItemOriginal = null;
@@ -1034,36 +1195,66 @@ function render() {
       }
     });
 
+    function startAction(pos) {
+        if (currentItem === 'mov') {
+            let idx = findItemAt(pos.gx, pos.gy);
+            if (idx !== -1) {
+                saveHistory();
+                movingItemOriginal = gridData[idx];
+                gridData.splice(idx, 1);
+                ghostX = pos.gx - Math.floor(movingItemOriginal.w / 2);
+                ghostY = pos.gy - Math.floor(movingItemOriginal.h / 2);
+            }
+        } else if (currentItem === 'sel') {
+            selectStartX = selectEndX = pos.gx;
+            selectStartY = selectEndY = pos.gy;
+        } else if (isPaintable(currentItem)) {
+            saveHistory();
+            lastPaintPos = {x: pos.gx, y: pos.gy};
+            applyPaint(pos);
+        }
+    }
+
     container.addEventListener('pointermove', e => {
       let idx = pointers.findIndex(p => p.pointerId === e.pointerId);
       if(idx !== -1) pointers[idx] = e;
 
-      if(pointers.length === 1 && isDragging) {
+      if (pointers.length === 1) {
         let pos = getGridPos(e.clientX, e.clientY);
         
-        if (currentItem === 'mov' && movingItemOriginal) {
-          ghostX = pos.gx - Math.floor(movingItemOriginal.w / 2);
-          ghostY = pos.gy - Math.floor(movingItemOriginal.h / 2);
-          render();
-        } else if (currentItem === 'sel' && selectStartX >= 0) {
-          selectEndX = pos.gx; selectEndY = pos.gy;
-          render();
-        } else if (isPaintable(currentItem)) {
-          if (!lastPaintPos || pos.gx !== lastPaintPos.x || pos.gy !== lastPaintPos.y) {
-            lastPaintPos = {x: pos.gx, y: pos.gy};
-            applyPaint(pos);
-          }
-        } else if (currentItem !== 'txt') {
-          let itm = getItem(currentItem);
-          if (itm) {
-            let isRot = rotState[currentItem];
-            let mtx = itm.matrixNorm ? (isRot ? itm.matrixRot : itm.matrixNorm) : null;
-            let w = mtx ? mtx[0].length : (itm.rotatable && isRot ? itm.h : itm.w);
-            let h = mtx ? mtx.length : (itm.rotatable && isRot ? itm.w : itm.h);
-            ghostX = pos.gx - Math.floor(w/2);
-            ghostY = pos.gy - Math.floor(h/2);
-            render();
-          }
+        if (!isDragging && touchStartClient) {
+            let dist = Math.hypot(e.clientX - touchStartClient.x, e.clientY - touchStartClient.y);
+            if (dist > 5) {
+                isDragging = true;
+                startAction(pendingTap || pos);
+            }
+        }
+
+        if (isDragging) {
+            if (currentItem === 'mov' && movingItemOriginal) {
+                ghostX = pos.gx - Math.floor(movingItemOriginal.w / 2);
+                ghostY = pos.gy - Math.floor(movingItemOriginal.h / 2);
+                render();
+            } else if (currentItem === 'sel' && selectStartX >= 0) {
+                selectEndX = pos.gx; selectEndY = pos.gy;
+                render();
+            } else if (isPaintable(currentItem)) {
+                if (!lastPaintPos || pos.gx !== lastPaintPos.x || pos.gy !== lastPaintPos.y) {
+                    lastPaintPos = {x: pos.gx, y: pos.gy};
+                    applyPaint(pos);
+                }
+            } else if (currentItem !== 'txt') {
+                let itm = getItem(currentItem);
+                if (itm) {
+                    let isRot = rotState[currentItem];
+                    let mtx = itm.matrixNorm ? (isRot ? itm.matrixRot : itm.matrixNorm) : null;
+                    let w = mtx ? mtx[0].length : (itm.rotatable && isRot ? itm.h : itm.w);
+                    let h = mtx ? mtx.length : (itm.rotatable && isRot ? itm.w : itm.h);
+                    ghostX = pos.gx - Math.floor(w/2);
+                    ghostY = pos.gy - Math.floor(h/2);
+                    render();
+                }
+            }
         }
       } else if (pointers.length === 2) {
         hideToast();
@@ -1109,58 +1300,101 @@ function render() {
       }
 
       if(pointers.length === 0) {
-        if (isDragging) {
-          isDragging = false;
-          
-          if (currentItem === 'mov' && movingItemOriginal) {
-            if (canPlace(ghostX, ghostY, movingItemOriginal.w, movingItemOriginal.h, movingItemOriginal.type, movingItemOriginal.matrix)) {
-              movingItemOriginal.x = ghostX;
-              movingItemOriginal.y = ghostY;
-              gridData.push(movingItemOriginal);
-            } else {
-              gridData.push(movingItemOriginal);
-            }
-            movingItemOriginal = null;
-            ghostX = -1; ghostY = -1;
-            render();
-          } else if (currentItem === 'sel' && selectStartX >= 0) {
-            openFillModal();
-          } else if (!isPaintable(currentItem) && currentItem !== 'txt' && ghostX >= 0) {
-            let itm = getItem(currentItem);
-            if (itm) {
-              let isRot = rotState[currentItem];
-              let mtx = itm.matrixNorm ? (isRot ? itm.matrixRot : itm.matrixNorm) : null;
-              let w = mtx ? mtx[0].length : (itm.rotatable && isRot ? itm.h : itm.w);
-              let h = mtx ? mtx.length : (itm.rotatable && isRot ? itm.w : itm.h);
-              if(canPlace(ghostX, ghostY, w, h, itm.type, mtx)) {
+        let pos = getGridPos(e.clientX, e.clientY);
+        
+        if (!isDragging && pendingTap) {
+            let textItemIndex = gridData.findIndex(d => d.type === 'text' && pos.gx === d.x && pos.gy === d.y);
+            
+            if (textItemIndex !== -1 && currentItem !== 'ers' && currentItem !== 'mov' && currentItem !== 'sel') {
+                gridData[textItemIndex].hidden = !gridData[textItemIndex].hidden;
+                render();
+            } else if (currentItem === 'txt') {
+                let str = prompt("配置するテキストを入力してください:
+(改行も可能です)");
+                if (str) {
+                   if (canPlace(pos.gx, pos.gy, 1, 1, 'text', null)) {
+                      saveHistory();
+                      gridData.push({ id: Date.now(), type: 'text', x: pos.gx, y: pos.gy, w: 1, h: 1, text: str, color: '#333', hidden: false });
+                      render();
+                   }
+                }
+            } else if (isPaintable(currentItem)) {
                 saveHistory();
-                gridData.push({
-                  id: Date.now(), type: itm.type,
-                  x: ghostX, y: ghostY, w: w, h: h,
-                  range: itm.range, color: itm.color, label: itm.label,
-                  matrix: mtx
-                });
-              }
+                applyPaint(pos);
+            } else if (currentItem !== 'mov' && currentItem !== 'sel') {
+                let itm = getItem(currentItem);
+                if (itm) {
+                    let isRot = rotState[currentItem];
+                    let mtx = itm.matrixNorm ? (isRot ? itm.matrixRot : itm.matrixNorm) : null;
+                    let w = mtx ? mtx[0].length : (itm.rotatable && isRot ? itm.h : itm.w);
+                    let h = mtx ? mtx.length : (itm.rotatable && isRot ? itm.w : itm.h);
+                    ghostX = pos.gx - Math.floor(w/2);
+                    ghostY = pos.gy - Math.floor(h/2);
+                    if(canPlace(ghostX, ghostY, w, h, itm.type, mtx)) {
+                        saveHistory();
+                        gridData.push({
+                            id: Date.now(), type: itm.type,
+                            x: ghostX, y: ghostY, w: w, h: h,
+                            range: itm.range, color: itm.color, label: itm.label,
+                            matrix: mtx
+                        });
+                    }
+                }
             }
-            ghostX = -1; ghostY = -1;
-            render();
-          }
-        } else if (movingItemOriginal) {
-          // 2本指操作などでドラッグがキャンセルされたが、移動中アイテムが宙に浮いている場合のフェイルセーフ
-          gridData.push(movingItemOriginal);
-          movingItemOriginal = null;
-          ghostX = -1; ghostY = -1;
-          render();
+        } else if (isDragging) {
+            if (currentItem === 'mov' && movingItemOriginal) {
+                if (canPlace(ghostX, ghostY, movingItemOriginal.w, movingItemOriginal.h, movingItemOriginal.type, movingItemOriginal.matrix)) {
+                    movingItemOriginal.x = ghostX;
+                    movingItemOriginal.y = ghostY;
+                    gridData.push(movingItemOriginal);
+                } else {
+                    gridData.push(movingItemOriginal);
+                }
+                movingItemOriginal = null;
+            } else if (currentItem === 'sel' && selectStartX >= 0) {
+                openFillModal();
+            } else if (!isPaintable(currentItem) && currentItem !== 'txt' && ghostX >= 0) {
+                let itm = getItem(currentItem);
+                if (itm) {
+                    let isRot = rotState[currentItem];
+                    let mtx = itm.matrixNorm ? (isRot ? itm.matrixRot : itm.matrixNorm) : null;
+                    let w = mtx ? mtx[0].length : (itm.rotatable && isRot ? itm.h : itm.w);
+                    let h = mtx ? mtx.length : (itm.rotatable && isRot ? itm.w : itm.h);
+                    if(canPlace(ghostX, ghostY, w, h, itm.type, mtx)) {
+                        saveHistory();
+                        gridData.push({
+                            id: Date.now(), type: itm.type,
+                            x: ghostX, y: ghostY, w: w, h: h,
+                            range: itm.range, color: itm.color, label: itm.label,
+                            matrix: mtx
+                        });
+                    }
+                }
+            }
         }
+        
+        isDragging = false;
+        pendingTap = null;
+        touchStartClient = null;
+        ghostX = -1; 
+        ghostY = -1;
+        selectStartX = -1;
+        if (movingItemOriginal) {
+           gridData.push(movingItemOriginal);
+           movingItemOriginal = null;
+        }
+        render();
       }
     });
-    
+
     container.addEventListener('pointercancel', e => {
       pointers = []; isDragging = false; ghostX = -1; ghostY = -1; selectStartX = -1; 
+      pendingTap = null; touchStartClient = null;
       if (movingItemOriginal) { gridData.push(movingItemOriginal); movingItemOriginal = null; }
       this.lastCx = null; this.lastCy = null; this.lastDist = null;
       render();
     });
+
 
 
     
