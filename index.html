@@ -268,7 +268,7 @@
       'tre': { type: 'tree', w: 1, h: 1, range: 1, color: '#ff9800', label: '🍎', matrixNorm: null, matrixRot: null },
       'pad': { type: 'paddy', w: 1, h: 1, range: 1, color: '#4caf50', label: '🌱', matrixNorm: null, matrixRot: null },
       'cop': { type: 'building', w: 8, h: 6, range: 0, color: '#ffb74d', label: '鶏', rotatable: true, matrixNorm: matrix_cop_norm, matrixRot: matrix_cop_rot, dirNorm: '横', dirRot: '縦' },
-      'brn': { type: 'building', w: 10, h: 14, range: 0, color: '#795548', label: '牛', rotatable: true, matrixNorm: matrix_brn_norm, matrixRot: matrix_brn_rot, dirNorm: '縦', dirRot: '横' },
+      'brn': { type: 'building', w: 10, h: 14, range: 0, color: '#795548', label: '家畜', rotatable: true, matrixNorm: matrix_brn_norm, matrixRot: matrix_brn_rot, dirNorm: '縦', dirRot: '横' },
       'hrs': { type: 'building', w: 8, h: 8, range: 0, color: '#8d6e63', label: '馬', rotatable: true, matrixNorm: matrix_hrs_norm, matrixRot: matrix_hrs_rot, dirNorm: '縦', dirRot: '横' }
     };
     
@@ -664,7 +664,7 @@
           }
         }
         ctx.fillStyle = (color === '#ffeb3b') ? '#333' : 'white';
-        ctx.font = 'bold 11px sans-serif';
+        ctx.font = 'bold 14px sans-serif';
         let cx = (gx + w/2) * TILE_SIZE;
         let cy = (gy + h/2) * TILE_SIZE;
         ctx.fillText(label, cx, cy);
@@ -1356,8 +1356,8 @@
         counts[key] = (counts[key] || 0) + 1;
       });
 
-      const typesToCount = ['強スプ', '普スプ', '小スプ', '🍎', '🌱', '鶏', '牛', '馬'];
-      const emojis = {'強スプ':'💧','普スプ':'💧','小スプ':'💧','🍎':'🍎','🌱':'🌱','鶏':'🏠','牛':'🏚️','馬':'🐴'};
+      const typesToCount = ['強スプ', '普スプ', '小スプ', '🍎', '🌱', '鶏', '家畜', '馬'];
+      const emojis = {'強スプ':'💧','普スプ':'💧','小スプ':'💧','🍎':'🍎','🌱':'🌱','鶏':'🏠','家畜':'🏚️','馬':'🐴'};
       
       let hasItems = false;
       typesToCount.forEach(key => {
