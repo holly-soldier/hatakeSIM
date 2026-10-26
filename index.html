@@ -394,6 +394,29 @@
       render();
     }
 
+    let pendingTextPos = null;
+    function openTextModal(pos) {
+      pendingTextPos = pos;
+      document.getElementById('txt-input').value = '';
+      document.getElementById('text-modal').style.display = 'flex';
+      setTimeout(() => document.getElementById('txt-input').focus(), 100);
+    }
+    function closeTextModal() {
+      document.getElementById('text-modal').style.display = 'none';
+      pendingTextPos = null;
+    }
+    function addTextItem() {
+      let str = document.getElementById('txt-input').value.trim();
+      if (str && pendingTextPos) {
+        if (canPlace(pendingTextPos.gx, pendingTextPos.gy, 1, 1, 'text', null)) {
+          saveHistory();
+          gridData.push({ id: Date.now(), type: 'text', x: pendingTextPos.gx, y: pendingTextPos.gy, w: 1, h: 1, text: str, color: '#333', hidden: false });
+          render();
+        }
+      }
+      closeTextModal();
+    }
+
     function findItemAt(gx, gy) {
       for(let i=gridData.length-1; i>=0; i--) {
         let d = gridData[i];
@@ -1308,16 +1331,11 @@ function render() {
             if (textItemIndex !== -1 && currentItem !== 'ers' && currentItem !== 'mov' && currentItem !== 'sel') {
                 gridData[textItemIndex].hidden = !gridData[textItemIndex].hidden;
                 render();
+                
             } else if (currentItem === 'txt') {
-                let str = prompt("配置するテキストを入力してください<br>(改行も可能です)");
-                if (str) {
-                   if (canPlace(pos.gx, pos.gy, 1, 1, 'text', null)) {
-                      saveHistory();
-                      gridData.push({ id: Date.now(), type: 'text', x: pos.gx, y: pos.gy, w: 1, h: 1, text: str, color: '#333', hidden: false });
-                      render();
-                   }
-                }
+                openTextModal(pos);
             } else if (isPaintable(currentItem)) {
+
                 saveHistory();
                 applyPaint(pos);
             } else if (currentItem !== 'mov' && currentItem !== 'sel') {
@@ -1599,6 +1617,18 @@ function render() {
       <div id="fill-options" class="modal-grid" style="display: flex; flex-direction: column;">
         <!-- Options injected by JS -->
       </div>
+    </div>
+  </div>
+  
+    <!-- テキスト入力用モーダル -->
+  <div id="text-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>テキストの配置</h3>
+        <button class="close-btn" onclick="closeTextModal()">&times;</button>
+      </div>
+      <textarea id="txt-input" rows="4" style="width: 100%; padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; resize: none;" placeholder="ここに文字を入力してください。&#13;&#10;（改行も反映されます）"></textarea>
+      <button class="btn" style="width: 100%; background: #607d8b; color: white; margin-top: 12px;" onclick="addTextItem()">配置する</button>
     </div>
   </div>
 </body>
