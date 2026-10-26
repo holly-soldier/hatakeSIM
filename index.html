@@ -88,7 +88,7 @@
   <header>
     <div class="title-group">
       <h1>【非公式】畑シミュレーター</h1>
-      <span class="version">v26.10.27.0044</span>
+      <span class="version">v26.10.28.0630</span>
     </div>
     <button class="settings-btn" onclick="openSettings()">⚙️ 設定</button>
   </header>
@@ -340,7 +340,7 @@
     }
     function closeFillModal() {
       document.getElementById('fill-modal').style.display = 'none';
-      selectStartX = -1; // ズレ防止：モーダルを閉じた時（または処理完了時）にのみリセットする
+      selectStartX = -1;
       render();
     }
     
@@ -372,7 +372,7 @@
           }
         }
       }
-      closeFillModal(); // この中で selectStartX = -1 され、render が呼ばれる
+      closeFillModal();
     }
 
     function findItemAt(gx, gy) {
@@ -672,7 +672,6 @@
         let px = gx * TILE_SIZE, py = gy * TILE_SIZE;
         ctx.fillStyle = color;
         
-        // --- 修正: カスタムアイテムの場合はグリッド線にかぶらないよう少し小さく描画(-1px) ---
         if (type === 'custom') {
             ctx.fillRect(px, py, w * TILE_SIZE - 1, h * TILE_SIZE - 1);
         } else {
@@ -819,18 +818,33 @@
         }
       });
       
+      // --- 修正: カスタム色グループの名前を「最も内側のマス（重心に近い実在のマス）」に表示する ---
       customGroups.forEach(group => {
          if (group.length === 0) return;
          let label = group[0].label;
          if (!label) return;
          
-         let sumX = 0, sumY = 0;
-         group.forEach(d => { sumX += d.x; sumY += d.y; });
-         let cx = (sumX / group.length + 0.5) * TILE_SIZE;
-         let cy = (sumY / group.length + 0.5) * TILE_SIZE;
+         // グループ内のすべてのマスを調べて、他のマスへの距離の合計が一番小さくなる（＝中心交差点）マスを探す
+         let bestBlock = group[0];
+         let minTotalDist = Infinity;
+         
+         group.forEach(candidate => {
+             let totalDist = 0;
+             group.forEach(target => {
+                 totalDist += Math.abs(candidate.x - target.x) + Math.abs(candidate.y - target.y);
+             });
+             if (totalDist < minTotalDist) {
+                 minTotalDist = totalDist;
+                 bestBlock = candidate;
+             }
+         });
+         
+         // 決定した「一番中心に近い実在のマス」の真ん中に名前を描画する
+         let cx = (bestBlock.x + 0.5) * TILE_SIZE;
+         let cy = (bestBlock.y + 0.5) * TILE_SIZE;
          
          ctx.fillStyle = (group[0].color === '#ffeb3b' || group[0].color === '#ffffff') ? '#333' : 'white';
-         ctx.font = 'bold 12px sans-serif';
+         ctx.font = 'bold 14px sans-serif'; // 文字サイズを14pxに少し大きく調整
          ctx.fillText(label, cx, cy);
       });
 
@@ -956,42 +970,36 @@
       for(let item of gridData) {
         for(let iy = y; iy < y + h; iy++) {
           for(let ix = x; ix < x + w; ix++) {
-            let val = matrix ? matrix[iy - y][ix - x] : 1; // 自分が配置するマスの属性(1:本体, 2:周囲など)
+            let val = matrix ? matrix[iy - y][ix - x] : 1; 
             if (val === 0) continue; 
             
             for(let ey = item.y; ey < item.y + item.h; ey++) {
               for(let ex = item.x; ex < item.x + item.w; ex++) {
-                let evalVal = item.matrix ? item.matrix[ey - item.y][ex - item.x] : 1; // 既存アイテムの属性
+                let evalVal = item.matrix ? item.matrix[ey - item.y][ex - item.x] : 1; 
                 if (evalVal === 0) continue; 
                 
                 // 座標が重なっている場合
                 if (ix === ex && iy === ey) {
-                    // --- 修正: 果樹(本体1)と建物(周囲2)の直接の重なりは許可する ---
                     if (type === 'tree' && item.type === 'building' && evalVal === 2) continue;
                     if (type === 'building' && val === 2 && item.type === 'tree') continue;
-                    return false; // それ以外の重なりはNG
+                    return false; 
                 }
                 
                 // 隣接制限のチェック
                 if (type === 'tree' || item.type === 'tree') {
-                    // 果樹同士は2マス以内に本体があってはならない
                     if (type === 'tree' && item.type === 'tree') {
                         if (Math.abs(ix - ex) <= 2 && Math.abs(iy - ey) <= 2) return false;
                     } 
-                    // 自分が果樹、相手が建物のとき (周囲1マス隣接NG)
                     else if (type === 'tree' && item.type === 'building') {
                         if (Math.abs(ix - ex) <= 1 && Math.abs(iy - ey) <= 1) {
-                            // --- 修正: 建物の周囲(2)なら隣接してもOK ---
                             if (evalVal !== 2) return false;
                         }
                     } 
-                    // 自分が建物、相手が果樹のとき
                     else if (type === 'building' && item.type === 'tree') {
                         if (Math.abs(ix - ex) <= 1 && Math.abs(iy - ey) <= 1) {
                             if (val !== 2) return false;
                         }
                     } 
-                    // 果樹と水田の隣接制限
                     else if (item.type === 'paddy' || type === 'paddy') {
                         if (Math.abs(ix - ex) <= 1 && Math.abs(iy - ey) <= 1) return false;
                     }
@@ -1177,7 +1185,6 @@
                 gridData[textItemIndex].hidden = !gridData[textItemIndex].hidden;
                 render();
             } else if (currentItem === 'txt') {
-                // --- 修正: テキスト入力モーダルを呼び出す ---
                 openTextModal(pos);
             } else if (isPaintable(currentItem)) {
                 saveHistory();
@@ -1213,7 +1220,6 @@
                 }
                 movingItemOriginal = null;
             } else if (currentItem === 'sel' && selectStartX >= 0) {
-                // --- 修正: 最終的なドラッグ終了位置を確定させてからモーダルを開く ---
                 selectEndX = pos.gx;
                 selectEndY = pos.gy;
                 openFillModal();
@@ -1242,7 +1248,6 @@
         touchStartClient = null;
         ghostX = -1; 
         ghostY = -1;
-        // --- 修正: ここでの selectStartX = -1; のリセットを削除（ズレの原因） ---
         
         if (movingItemOriginal) {
            gridData.push(movingItemOriginal);
@@ -1463,7 +1468,6 @@
     </div>
   </div>
 
-  <!-- 新規: テキスト入力用モーダル -->
   <div id="text-modal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
