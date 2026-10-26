@@ -104,7 +104,7 @@
   <header>
     <div class="title-group">
       <h1>【非公式】畑シミュレーター</h1>
-      <span class="version">v26.10.26.2305</span>
+      <span class="version">v26.10.26.2319</span>
     </div>
     <button class="settings-btn" onclick="openSettings()">⚙️ 設定</button>
   </header>
@@ -677,6 +677,47 @@
       }
     }
 
+    
+    function drawItemComplex(gx, gy, type, w, h, color, label, matrix) {
+      if (matrix) {
+        ctx.fillStyle = color;
+        for(let r=0; r<h; r++){
+          for(let c=0; c<w; c++){
+            if (matrix[r][c] !== 0) {
+              let px = (gx + c) * TILE_SIZE;
+              let py = (gy + r) * TILE_SIZE;
+              ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+              ctx.strokeStyle = '#fff';
+              ctx.strokeRect(px, py, TILE_SIZE, TILE_SIZE);
+              if (matrix[r][c] === 3) {
+                 ctx.fillStyle = typeof hatchCanvas !== 'undefined' ? ctx.createPattern(hatchCanvas, 'repeat') : 'rgba(0,0,0,0.2)';
+                 ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
+                 ctx.fillStyle = color;
+              }
+            }
+          }
+        }
+        ctx.fillStyle = (color === '#ffeb3b') ? '#333' : 'white';
+        ctx.font = 'bold 11px sans-serif';
+        let cx = (gx + w/2) * TILE_SIZE;
+        let cy = (gy + h/2) * TILE_SIZE;
+        ctx.fillText(label, cx, cy);
+      } else {
+        let px = gx * TILE_SIZE, py = gy * TILE_SIZE;
+        ctx.fillStyle = color;
+        ctx.fillRect(px, py, w * TILE_SIZE, h * TILE_SIZE);
+        ctx.strokeStyle = '#fff';
+        ctx.strokeRect(px, py, w * TILE_SIZE, h * TILE_SIZE);
+        if(type === 'building') {
+            ctx.fillStyle = typeof hatchCanvas !== 'undefined' ? ctx.createPattern(hatchCanvas, 'repeat') : 'rgba(0,0,0,0.2)';
+            ctx.fillRect(px, py, w * TILE_SIZE, h * TILE_SIZE);
+        }
+        ctx.fillStyle = (color === '#ffeb3b') ? '#333' : 'white';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText(label, px + (w * TILE_SIZE) / 2, py + (h * TILE_SIZE) / 2);
+      }
+    }
+
     function render() {
       const f = fields[currentFieldIndex];
       const map = getMapSize();
@@ -722,7 +763,46 @@
         }
       }
 
+      
       gridData.forEach(d => applyHighlight(d.x, d.y, d.type, d.range, d.w, d.h));
+
+      // ハイライトの描画
+      for(let y = 0; y < map.rows; y++) {
+        for(let x = 0; x < map.cols; x++) {
+          if (highlightMap[y][x]) {
+             ctx.fillStyle = highlightMap[y][x];
+             ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+          }
+        }
+      }
+
+      // スプリンクラー範囲の描画
+      gridData.forEach(d => {
+        if (d.type === 'sprinkler') {
+            ctx.fillStyle = 'rgba(33, 150, 243, 0.4)';
+            let r = d.range;
+            for(let y = d.y - r; y <= d.y + r; y++) {
+              for(let x = d.x - r; x <= d.x + r; x++) {
+                if(x >= 0 && x < map.cols && y >= 0 && y < map.rows) {
+                  if(x === d.x && y === d.y) continue;
+                  ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                }
+              }
+            }
+        }
+      });
+
+      // アイテム本体の描画
+      gridData.forEach(d => {
+        if (d.type === 'text') {
+          ctx.fillStyle = d.color;
+          ctx.font = 'bold 12px sans-serif';
+          ctx.fillText(d.text, (d.x + 0.5) * TILE_SIZE, (d.y + 0.5) * TILE_SIZE);
+        } else {
+          drawItemComplex(d.x, d.y, d.type, d.w, d.h, d.color, d.label, d.matrix);
+        }
+      });
+
       if(isDragging && ghostX >= 0 && !isPaintable(currentItem) && currentItem !== 'mov' && currentItem !== 'sel' && currentItem !== 'txt' && !movingItemOriginal) {
         let itm = getItem(currentItem);
         if (itm) {
@@ -733,7 +813,7 @@
             let gh = mtx ? mtx.length : (itm.rotatable && isRot ? itm.w : itm.h);
             
             ctx.globalAlpha = 0.6;
-            let can = canPlace(ghostX, ghostY, gw, gw ? gh : h, itm.type, mtx);
+            let can = canPlace(ghostX, ghostY, gw, gh, itm.type, mtx);
             drawItemComplex(ghostX, ghostY, itm.type, gw, gh, can ? itm.color : 'red', can ? itm.label : 'X', mtx);
             ctx.globalAlpha = 1.0;
         }
