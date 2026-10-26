@@ -104,7 +104,7 @@
   <header>
     <div class="title-group">
       <h1>【非公式】畑シミュレーター</h1>
-      <span class="version">v26.10.25.0958</span>
+      <span class="version">v26.10.26.2305</span>
     </div>
     <button class="settings-btn" onclick="openSettings()">⚙️ 設定</button>
   </header>
@@ -154,6 +154,20 @@
       <div class="item-btn" onclick="selectItem('ers')" id="btn-ers">
         <div class="item-icon c-ers">🧽</div><div class="item-name">消しゴム</div><div class="item-desc">削除</div>
       </div>
+      
+      <div class="item-btn" onclick="selectItem('txt')" id="btn-txt">
+        <div class="item-icon" style="background:#607d8b;">📝</div><div class="item-name">文字</div><div class="item-desc">タップ配置</div>
+      </div>
+      <div class="item-btn" onclick="selectItem('mov')" id="btn-mov">
+        <div class="item-icon" style="background:#9c27b0;">🖐️</div><div class="item-name">移動</div><div class="item-desc">ドラッグ</div>
+      </div>
+      <div class="item-btn" onclick="selectItem('sel')" id="btn-sel">
+        <div class="item-icon" style="background:#3f51b5; font-size:16px;">⬚</div><div class="item-name">範囲選択</div><div class="item-desc">一括処理</div>
+      </div>
+      <div class="item-btn" onclick="openCustomModal()" style="border-style: dashed;">
+        <div class="item-icon" style="background:#fff; color:#333;">+</div><div class="item-name">色追加</div><div class="item-desc">自由な色</div>
+      </div>
+      <span id="custom-items-container" style="display:contents;"></span>
       <div class="item-btn c-rst" onclick="resetField()">
         <div class="item-icon c-ers" style="background:transparent; font-size:24px;">🗑️</div><div class="item-name" style="color:white;">リセット</div>
       </div>
@@ -279,6 +293,121 @@
     
     let currentItem = 'enh';
     let rotState = { 'cop': false, 'brn': false, 'hrs': false };
+
+    let customItems = {};
+    let movingItemOriginal = null;
+    let selectStartX = -1, selectStartY = -1, selectEndX = -1, selectEndY = -1;
+    let lastPaintPos = null;
+
+    function getItem(key) {
+      if (items[key]) return items[key];
+      if (customItems[key]) return customItems[key];
+      return null;
+    }
+
+    function isPaintable(key) {
+      return key === 'ers' || key === 'pad' || key.startsWith('cst_');
+    }
+
+    function openCustomModal() {
+      document.getElementById('cst-name').value = '';
+      document.getElementById('cst-color').value = '#ffeb3b';
+      document.getElementById('add-custom-modal').style.display = 'flex';
+    }
+    function closeCustomModal() {
+      document.getElementById('add-custom-modal').style.display = 'none';
+    }
+    function addCustomItem() {
+      let name = document.getElementById('cst-name').value.trim() || '色';
+      let color = document.getElementById('cst-color').value;
+      let id = 'cst_' + Date.now();
+      customItems[id] = { type: 'custom', w: 1, h: 1, range: 0, color: color, label: name };
+      saveToLocal();
+      renderCustomPalette();
+      closeCustomModal();
+      selectItem(id);
+    }
+    function renderCustomPalette() {
+      let container = document.getElementById('custom-items-container');
+      container.innerHTML = '';
+      for(let key in customItems) {
+        let itm = customItems[key];
+        let html = `<div class="item-btn" onclick="selectItem('${key}')" id="btn-${key}">
+          <div class="item-icon" style="background:${itm.color}; border: 1px solid #ddd;"></div>
+          <div class="item-name">${itm.label}</div>
+          <div class="item-desc">再タップ削除</div>
+        </div>`;
+        container.innerHTML += html;
+      }
+      if (customItems[currentItem]) {
+        let b = document.getElementById(`btn-${currentItem}`);
+        if(b) b.classList.add('selected');
+      }
+    }
+
+    function openFillModal() {
+      let container = document.getElementById('fill-options');
+      container.innerHTML = `
+        <button class="btn" style="text-align:left; border-left: 6px solid #4caf50;" onclick="executeFill('pad')">🌱 水田で塗りつぶす</button>
+        <button class="btn" style="text-align:left; border-left: 6px solid #f44336;" onclick="executeFill('ers')">🧽 範囲内を一括削除</button>
+      `;
+      for(let key in customItems) {
+        let itm = customItems[key];
+        container.innerHTML += `<button class="btn" style="text-align:left; border-left: 6px solid ${itm.color};" onclick="executeFill('${key}')">${itm.label} で塗りつぶす</button>`;
+      }
+      document.getElementById('fill-modal').style.display = 'flex';
+    }
+    function closeFillModal() {
+      document.getElementById('fill-modal').style.display = 'none';
+      selectStartX = -1; render();
+    }
+    function executeFill(key) {
+      closeFillModal();
+      saveHistory();
+      let minX = Math.min(selectStartX, selectEndX);
+      let maxX = Math.max(selectStartX, selectEndX);
+      let minY = Math.min(selectStartY, selectEndY);
+      let maxY = Math.max(selectStartY, selectEndY);
+      
+      if (key === 'ers') {
+        for(let i=gridData.length-1; i>=0; i--) {
+          let d = gridData[i];
+          if (d.x <= maxX && d.x + d.w - 1 >= minX && d.y <= maxY && d.y + d.h - 1 >= minY) {
+            gridData.splice(i, 1);
+          }
+        }
+      } else {
+        let itm = getItem(key);
+        for(let y=minY; y<=maxY; y++){
+          for(let x=minX; x<=maxX; x++){
+            if (canPlace(x, y, 1, 1, itm.type, null)) {
+              gridData.push({
+                id: Date.now() + Math.random(), type: itm.type,
+                x: x, y: y, w: 1, h: 1,
+                range: itm.range || 0, color: itm.color, label: itm.label
+              });
+            }
+          }
+        }
+      }
+      selectStartX = -1;
+      render();
+    }
+
+    function findItemAt(gx, gy) {
+      for(let i=gridData.length-1; i>=0; i--) {
+        let d = gridData[i];
+        if (gx >= d.x && gx < d.x + d.w && gy >= d.y && gy < d.y + d.h) {
+          if (d.matrix) {
+            if (d.matrix[gy - d.y][gx - d.x] !== 0) return i;
+          } else {
+            return i;
+          }
+        }
+      }
+      return -1;
+    }
+
     
     let allGridData = [[], [], []];
     let allHistory = [[], [], []];
@@ -347,18 +476,29 @@
     }
 
     function selectItem(key) {
-      if(key === currentItem && items[key] && items[key].rotatable) {
-        rotState[key] = !rotState[key];
-        let w = items[key].matrixNorm ? (rotState[key] ? items[key].matrixRot[0].length : items[key].matrixNorm[0].length) : (rotState[key] ? items[key].h : items[key].w);
-        let h = items[key].matrixNorm ? (rotState[key] ? items[key].matrixRot.length : items[key].matrixNorm.length) : (rotState[key] ? items[key].w : items[key].h);
-        const descEl = document.getElementById(`desc-${key}`);
-        let dir = rotState[key] ? items[key].dirRot : items[key].dirNorm;
-        descEl.innerHTML = `${dir} ${w}×${h}`;
-        descEl.style.color = (dir === '横') ? '#d32f2f' : '#1976d2';
+      if(key === currentItem) {
+        if (items[key] && items[key].rotatable) {
+          rotState[key] = !rotState[key];
+          let w = items[key].matrixNorm ? (rotState[key] ? items[key].matrixRot[0].length : items[key].matrixNorm[0].length) : (rotState[key] ? items[key].h : items[key].w);
+          let h = items[key].matrixNorm ? (rotState[key] ? items[key].matrixRot.length : items[key].matrixNorm.length) : (rotState[key] ? items[key].w : items[key].h);
+          const descEl = document.getElementById(`desc-${key}`);
+          let dir = rotState[key] ? items[key].dirRot : items[key].dirNorm;
+          descEl.innerHTML = `${dir} ${w}×${h}`;
+          descEl.style.color = (dir === '横') ? '#d32f2f' : '#1976d2';
+        } else if (key.startsWith('cst_')) {
+          if (confirm('このカスタム色を削除しますか？')) {
+            delete customItems[key];
+            saveToLocal();
+            renderCustomPalette();
+            selectItem('enh');
+            return;
+          }
+        }
       }
       currentItem = key;
       document.querySelectorAll('.item-btn').forEach(b => b.classList.remove('selected'));
-      document.getElementById(`btn-${key}`).classList.add('selected');
+      let targetBtn = document.getElementById(`btn-${key}`);
+      if(targetBtn) targetBtn.classList.add('selected');
     }
 
     function saveHistory() {
@@ -583,102 +723,45 @@
       }
 
       gridData.forEach(d => applyHighlight(d.x, d.y, d.type, d.range, d.w, d.h));
-      if(isDragging && ghostX >= 0 && currentItem !== 'ers') {
-        let itm = items[currentItem];
-        let gw = itm.matrixNorm ? (rotState[currentItem] ? itm.matrixRot[0].length : itm.matrixNorm[0].length) : (itm.rotatable && rotState[currentItem] ? itm.h : itm.w);
-        let gh = itm.matrixNorm ? (rotState[currentItem] ? itm.matrixRot.length : itm.matrixNorm.length) : (itm.rotatable && rotState[currentItem] ? itm.w : itm.h);
-        applyHighlight(ghostX, ghostY, itm.type, itm.range, gw, gh);
-      }
-
-      for(let y = 0; y < map.rows; y++) {
-        for(let x = 0; x < map.cols; x++) {
-          if (highlightMap[y][x]) {
-            ctx.fillStyle = highlightMap[y][x];
-            ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-          }
+      if(isDragging && ghostX >= 0 && !isPaintable(currentItem) && currentItem !== 'mov' && currentItem !== 'sel' && currentItem !== 'txt' && !movingItemOriginal) {
+        let itm = getItem(currentItem);
+        if (itm) {
+            let isRot = rotState[currentItem];
+            let mtx = null;
+            if(itm.matrixNorm) mtx = isRot ? itm.matrixRot : itm.matrixNorm;
+            let gw = mtx ? mtx[0].length : (itm.rotatable && isRot ? itm.h : itm.w);
+            let gh = mtx ? mtx.length : (itm.rotatable && isRot ? itm.w : itm.h);
+            
+            ctx.globalAlpha = 0.6;
+            let can = canPlace(ghostX, ghostY, gw, gw ? gh : h, itm.type, mtx);
+            drawItemComplex(ghostX, ghostY, itm.type, gw, gh, can ? itm.color : 'red', can ? itm.label : 'X', mtx);
+            ctx.globalAlpha = 1.0;
         }
       }
-
-      function drawSprinklerHighlight(gx, gy, type, range, w, h) {
-        if(type === 'sprinkler') {
-          ctx.fillStyle = 'rgba(33, 150, 243, 0.4)';
-          for(let y = gy - range; y < gy + h + range; y++) {
-            for(let x = gx - range; x < gx + w + range; x++) {
-              if(x >= 0 && x < map.cols && y >= 0 && y < map.rows) {
-                ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
-              }
-            }
-          }
-        }
-      }
-      gridData.forEach(d => drawSprinklerHighlight(d.x, d.y, d.type, d.range, d.w, d.h));
-      if(isDragging && ghostX >= 0 && currentItem !== 'ers') {
-        let itm = items[currentItem];
-        let gw = itm.matrixNorm ? (rotState[currentItem] ? itm.matrixRot[0].length : itm.matrixNorm[0].length) : (itm.rotatable && rotState[currentItem] ? itm.h : itm.w);
-        let gh = itm.matrixNorm ? (rotState[currentItem] ? itm.matrixRot.length : itm.matrixNorm.length) : (itm.rotatable && rotState[currentItem] ? itm.w : itm.h);
-        drawSprinklerHighlight(ghostX, ghostY, itm.type, itm.range, gw, gh);
-      }
-
-      function drawItemComplex(gx, gy, itmType, w, h, color, label, matrix) {
-        if (!matrix) {
-          ctx.fillStyle = color;
-          ctx.fillRect(gx * TILE_SIZE, gy * TILE_SIZE, w * TILE_SIZE, h * TILE_SIZE);
-          ctx.strokeStyle = '#fff';
-          ctx.lineWidth = 1.5;
-          ctx.strokeRect(gx * TILE_SIZE, gy * TILE_SIZE, w * TILE_SIZE, h * TILE_SIZE);
-          ctx.fillStyle = '#fff';
-          ctx.font = '10px Arial';
-          ctx.fillText(label, (gx + w/2) * TILE_SIZE, (gy + h/2) * TILE_SIZE);
-        } else {
-          const pat = ctx.createPattern(hatchCanvas, 'repeat');
-          let textDrawn = false;
-          for(let my = 0; my < matrix.length; my++) {
-            for(let mx = 0; mx < matrix[my].length; mx++) {
-              let val = matrix[my][mx];
-              let tx = (gx + mx) * TILE_SIZE;
-              let ty = (gy + my) * TILE_SIZE;
-              if (val === 1) {
-                ctx.fillStyle = color;
-                ctx.fillRect(tx, ty, TILE_SIZE, TILE_SIZE);
-                if (!textDrawn && my === Math.floor(h/2) && mx === Math.floor(w/2)) {
-                  ctx.fillStyle = '#fff';
-                  ctx.font = '10px Arial';
-                  ctx.fillText(label, tx + TILE_SIZE/2, ty + TILE_SIZE/2);
-                  textDrawn = true;
-                }
-              } else if (val === 2) {
-                ctx.fillStyle = pat;
-                ctx.fillRect(tx, ty, TILE_SIZE, TILE_SIZE);
-              } else if (val === 3) {
-                ctx.fillStyle = '#81c784';
-                ctx.fillRect(tx, ty, TILE_SIZE, TILE_SIZE);
-              }
-              if (val !== 0) {
-                 ctx.strokeStyle = '#fff';
-                 ctx.lineWidth = 0.5;
-                 ctx.strokeRect(tx, ty, TILE_SIZE, TILE_SIZE);
-              }
-            }
-          }
-        }
-      }
-
-      gridData.forEach(d => {
-        drawItemComplex(d.x, d.y, d.type, d.w, d.h, d.color, d.label, d.matrix);
-      });
-
-      if(isDragging && ghostX >= 0 && currentItem !== 'ers') {
-        let itm = items[currentItem];
-        let isRot = rotState[currentItem];
-        let mtx = null;
-        if(itm.matrixNorm) mtx = isRot ? itm.matrixRot : itm.matrixNorm;
-        let gw = mtx ? mtx[0].length : (itm.rotatable && isRot ? itm.h : itm.w);
-        let gh = mtx ? mtx.length : (itm.rotatable && isRot ? itm.w : itm.h);
-        
+      if(isDragging && movingItemOriginal) {
         ctx.globalAlpha = 0.6;
-        let can = canPlace(ghostX, ghostY, gw, gw ? gh : h, itm.type, mtx);
-        drawItemComplex(ghostX, ghostY, itm.type, gw, gh, can ? itm.color : 'red', can ? itm.label : 'X', mtx);
+        let can = canPlace(ghostX, ghostY, movingItemOriginal.w, movingItemOriginal.h, movingItemOriginal.type, movingItemOriginal.matrix);
+        if (movingItemOriginal.type === 'text') {
+          ctx.fillStyle = can ? movingItemOriginal.color : 'red';
+          ctx.font = 'bold 12px sans-serif';
+          ctx.fillText(movingItemOriginal.text, (ghostX + 0.5) * TILE_SIZE, (ghostY + 0.5) * TILE_SIZE);
+        } else {
+          drawItemComplex(ghostX, ghostY, movingItemOriginal.type, movingItemOriginal.w, movingItemOriginal.h, can ? movingItemOriginal.color : 'red', can ? movingItemOriginal.label : 'X', movingItemOriginal.matrix);
+        }
         ctx.globalAlpha = 1.0;
+      }
+      if(currentItem === 'sel' && selectStartX >= 0) {
+        let minX = Math.min(selectStartX, selectEndX);
+        let maxX = Math.max(selectStartX, selectEndX);
+        let minY = Math.min(selectStartY, selectEndY);
+        let maxY = Math.max(selectStartY, selectEndY);
+        ctx.fillStyle = 'rgba(63, 81, 181, 0.3)';
+        ctx.fillRect(minX * TILE_SIZE, minY * TILE_SIZE, (maxX - minX + 1) * TILE_SIZE, (maxY - minY + 1) * TILE_SIZE);
+        ctx.strokeStyle = '#3f51b5';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 4]);
+        ctx.strokeRect(minX * TILE_SIZE, minY * TILE_SIZE, (maxX - minX + 1) * TILE_SIZE, (maxY - minY + 1) * TILE_SIZE);
+        ctx.setLineDash([]);
       }
       
       renderRulers();
@@ -754,38 +837,70 @@
       return { gx: Math.floor(x / TILE_SIZE), gy: Math.floor(y / TILE_SIZE) };
     }
 
+    
+    function applyPaint(pos) {
+      if (currentItem === 'ers') {
+        let idx = findItemAt(pos.gx, pos.gy);
+        if(idx !== -1) { gridData.splice(idx, 1); render(); }
+      } else {
+        let itm = getItem(currentItem);
+        if (canPlace(pos.gx, pos.gy, 1, 1, itm.type, null)) {
+          gridData.push({
+            id: Date.now() + Math.random(), type: itm.type,
+            x: pos.gx, y: pos.gy, w: 1, h: 1,
+            range: itm.range || 0, color: itm.color, label: itm.label
+          });
+          render();
+        }
+      }
+    }
+
     container.addEventListener('pointerdown', e => {
       pointers.push(e);
       if(pointers.length === 1) {
         isDragging = true;
         let pos = getGridPos(e.clientX, e.clientY);
-        if(currentItem === 'ers') {
-          let idx = gridData.findIndex(d => {
-            if (pos.gx >= d.x && pos.gx < d.x + d.w && pos.gy >= d.y && pos.gy < d.y + d.h) {
-              if (d.matrix) {
-                let val = d.matrix[pos.gy - d.y][pos.gx - d.x];
-                return val !== 0; 
-              }
-              return true;
+        
+        if (currentItem === 'txt') {
+          let str = prompt("配置するテキストを入力してください:");
+          if (str) {
+            if (canPlace(pos.gx, pos.gy, 1, 1, 'text', null)) {
+              saveHistory();
+              gridData.push({ id: Date.now(), type: 'text', x: pos.gx, y: pos.gy, w: 1, h: 1, text: str, color: '#333' });
+              render();
             }
-            return false;
-          });
-          if(idx !== -1) {
-            saveHistory();
-            gridData.splice(idx, 1);
           }
+        } else if (currentItem === 'mov') {
+          let idx = findItemAt(pos.gx, pos.gy);
+          if (idx !== -1) {
+            saveHistory();
+            movingItemOriginal = gridData[idx];
+            gridData.splice(idx, 1);
+            ghostX = pos.gx - Math.floor(movingItemOriginal.w / 2);
+            ghostY = pos.gy - Math.floor(movingItemOriginal.h / 2);
+            render();
+          }
+        } else if (currentItem === 'sel') {
+          selectStartX = selectEndX = pos.gx;
+          selectStartY = selectEndY = pos.gy;
+          render();
+        } else if (isPaintable(currentItem)) {
+          saveHistory();
+          lastPaintPos = {x: pos.gx, y: pos.gy};
+          applyPaint(pos);
         } else {
-          let itm = items[currentItem];
-          let isRot = rotState[currentItem];
-          let mtx = itm.matrixNorm ? (isRot ? itm.matrixRot : itm.matrixNorm) : null;
-          let w = mtx ? mtx[0].length : (itm.rotatable && isRot ? itm.h : itm.w);
-          let h = mtx ? mtx.length : (itm.rotatable && isRot ? itm.w : itm.h);
-          ghostX = pos.gx - Math.floor(w/2);
-          ghostY = pos.gy - Math.floor(h/2);
+          let itm = getItem(currentItem);
+          if (itm) {
+            let isRot = rotState[currentItem];
+            let mtx = itm.matrixNorm ? (isRot ? itm.matrixRot : itm.matrixNorm) : null;
+            let w = mtx ? mtx[0].length : (itm.rotatable && isRot ? itm.h : itm.w);
+            let h = mtx ? mtx.length : (itm.rotatable && isRot ? itm.w : itm.h);
+            ghostX = pos.gx - Math.floor(w/2);
+            ghostY = pos.gy - Math.floor(h/2);
+          }
         }
-        render();
       } else if (pointers.length === 2) {
-        isDragging = false; ghostX = -1; ghostY = -1; render();
+        isDragging = false; ghostX = -1; ghostY = -1; selectStartX = -1; render();
         hideToast();
         let p1 = pointers[0], p2 = pointers[1];
         initialPinchDist = Math.hypot(p1.clientX - p2.clientX, p1.clientY - p2.clientY);
@@ -799,15 +914,30 @@
 
       if(pointers.length === 1 && isDragging) {
         let pos = getGridPos(e.clientX, e.clientY);
-        let itm = items[currentItem];
-        if(itm && currentItem !== 'ers') {
-          let isRot = rotState[currentItem];
-          let mtx = itm.matrixNorm ? (isRot ? itm.matrixRot : itm.matrixNorm) : null;
-          let w = mtx ? mtx[0].length : (itm.rotatable && isRot ? itm.h : itm.w);
-          let h = mtx ? mtx.length : (itm.rotatable && isRot ? itm.w : itm.h);
-          ghostX = pos.gx - Math.floor(w/2);
-          ghostY = pos.gy - Math.floor(h/2);
+        
+        if (currentItem === 'mov' && movingItemOriginal) {
+          ghostX = pos.gx - Math.floor(movingItemOriginal.w / 2);
+          ghostY = pos.gy - Math.floor(movingItemOriginal.h / 2);
           render();
+        } else if (currentItem === 'sel' && selectStartX >= 0) {
+          selectEndX = pos.gx; selectEndY = pos.gy;
+          render();
+        } else if (isPaintable(currentItem)) {
+          if (!lastPaintPos || pos.gx !== lastPaintPos.x || pos.gy !== lastPaintPos.y) {
+            lastPaintPos = {x: pos.gx, y: pos.gy};
+            applyPaint(pos);
+          }
+        } else if (currentItem !== 'txt') {
+          let itm = getItem(currentItem);
+          if (itm) {
+            let isRot = rotState[currentItem];
+            let mtx = itm.matrixNorm ? (isRot ? itm.matrixRot : itm.matrixNorm) : null;
+            let w = mtx ? mtx[0].length : (itm.rotatable && isRot ? itm.h : itm.w);
+            let h = mtx ? mtx.length : (itm.rotatable && isRot ? itm.w : itm.h);
+            ghostX = pos.gx - Math.floor(w/2);
+            ghostY = pos.gy - Math.floor(h/2);
+            render();
+          }
         }
       } else if (pointers.length === 2) {
         hideToast();
@@ -854,32 +984,50 @@
 
       if(pointers.length === 0 && isDragging) {
         isDragging = false;
-        if(currentItem !== 'ers' && ghostX >= 0) {
-          let itm = items[currentItem];
-          let isRot = rotState[currentItem];
-          let mtx = itm.matrixNorm ? (isRot ? itm.matrixRot : itm.matrixNorm) : null;
-          let w = mtx ? mtx[0].length : (itm.rotatable && isRot ? itm.h : itm.w);
-          let h = mtx ? mtx.length : (itm.rotatable && isRot ? itm.w : itm.h);
-          if(canPlace(ghostX, ghostY, w, h, itm.type, mtx)) {
-            saveHistory();
-            gridData.push({
-              id: Date.now(), type: itm.type,
-              x: ghostX, y: ghostY, w: w, h: h,
-              range: itm.range, color: itm.color, label: itm.label,
-              matrix: mtx
-            });
+        
+        if (currentItem === 'mov' && movingItemOriginal) {
+          if (canPlace(ghostX, ghostY, movingItemOriginal.w, movingItemOriginal.h, movingItemOriginal.type, movingItemOriginal.matrix)) {
+            movingItemOriginal.x = ghostX;
+            movingItemOriginal.y = ghostY;
+            gridData.push(movingItemOriginal);
+          } else {
+            gridData.push(movingItemOriginal);
           }
+          movingItemOriginal = null;
+          ghostX = -1; ghostY = -1;
+          render();
+        } else if (currentItem === 'sel' && selectStartX >= 0) {
+          openFillModal();
+        } else if (!isPaintable(currentItem) && currentItem !== 'txt' && ghostX >= 0) {
+          let itm = getItem(currentItem);
+          if (itm) {
+            let isRot = rotState[currentItem];
+            let mtx = itm.matrixNorm ? (isRot ? itm.matrixRot : itm.matrixNorm) : null;
+            let w = mtx ? mtx[0].length : (itm.rotatable && isRot ? itm.h : itm.w);
+            let h = mtx ? mtx.length : (itm.rotatable && isRot ? itm.w : itm.h);
+            if(canPlace(ghostX, ghostY, w, h, itm.type, mtx)) {
+              saveHistory();
+              gridData.push({
+                id: Date.now(), type: itm.type,
+                x: ghostX, y: ghostY, w: w, h: h,
+                range: itm.range, color: itm.color, label: itm.label,
+                matrix: mtx
+              });
+            }
+          }
+          ghostX = -1; ghostY = -1;
+          render();
         }
-        ghostX = -1; ghostY = -1;
-        render();
       }
     });
     
     container.addEventListener('pointercancel', e => {
-      pointers = []; isDragging = false; ghostX = -1; ghostY = -1; 
+      pointers = []; isDragging = false; ghostX = -1; ghostY = -1; selectStartX = -1; 
+      if (movingItemOriginal) { gridData.push(movingItemOriginal); movingItemOriginal = null; }
       this.lastCx = null; this.lastCy = null; this.lastDist = null;
       render();
     });
+
 
     
     
@@ -898,11 +1046,11 @@
     
     
     function saveToLocal() {
-      
       try {
         localStorage.setItem('farmSimData', JSON.stringify({
-          version: 1,
-          allGridData: allGridData
+          version: 2,
+          allGridData: allGridData,
+          customItems: customItems
         }));
       } catch (e) {
         console.warn('Auto-save failed:', e);
@@ -917,6 +1065,10 @@
           if (data && data.allGridData) {
             allGridData = data.allGridData;
             gridData = allGridData[currentFieldIndex];
+          }
+          if (data && data.customItems) {
+            customItems = data.customItems;
+            renderCustomPalette();
           }
         }
       } catch (e) {
@@ -988,10 +1140,7 @@
 
     function exportData() {
       closeSettings();
-      const data = {
-        version: 1,
-        allGridData: allGridData
-      };
+      const data = { version: 2, allGridData: allGridData, customItems: customItems };
       const json = JSON.stringify(data);
       const blob = new Blob([json], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -1017,6 +1166,7 @@
             allHistory = [[], [], []]; 
             gridData = allGridData[currentFieldIndex];
             history = allHistory[currentFieldIndex];
+            if(data.customItems) { customItems = data.customItems; renderCustomPalette(); }
             updateUndoButton();
             render();
             alert("バックアップデータを復元しました。");
@@ -1054,5 +1204,35 @@
     </div>
   </div>
 
+
+  <div id="add-custom-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>カスタム色の追加</h3>
+        <button class="close-btn" onclick="closeCustomModal()">&times;</button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
+        <input type="text" id="cst-name" placeholder="名称 (例: 花, 柵)" style="padding: 8px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <input type="color" id="cst-color" value="#ffeb3b" style="width: 48px; height: 48px; border: none; cursor: pointer; padding: 0;">
+          <span style="font-size: 12px; color: #555;">色を選択</span>
+        </div>
+      </div>
+      <button class="btn" style="width: 100%; background: #4caf50; color: white;" onclick="addCustomItem()">追加する</button>
+    </div>
+  </div>
+
+  <div id="fill-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>範囲選択の処理</h3>
+        <button class="close-btn" onclick="closeFillModal()">&times;</button>
+      </div>
+      <p style="font-size: 12px; color: #555; margin-top: 0;">選択した範囲をどう処理しますか？</p>
+      <div id="fill-options" class="modal-grid" style="display: flex; flex-direction: column;">
+        <!-- Options injected by JS -->
+      </div>
+    </div>
+  </div>
 </body>
 </html>
