@@ -1309,7 +1309,7 @@ function render() {
                 gridData[textItemIndex].hidden = !gridData[textItemIndex].hidden;
                 render();
             } else if (currentItem === 'txt') {
-                let str = prompt("配置するテキストを入力してください:\\n(改行も可能です)");
+                let str = prompt("配置するテキストを入力してください<br>(改行も可能です)");
                 if (str) {
                    if (canPlace(pos.gx, pos.gy, 1, 1, 'text', null)) {
                       saveHistory();
